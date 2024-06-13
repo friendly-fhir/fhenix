@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Promote Branch
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  promote:
+    name: Promote to Master
+    uses: friendly-fhir/.github/workflows/promote-branch.yaml@master
+    with:
+      branch: develop
+    permissions:
+      id-token: write
+
