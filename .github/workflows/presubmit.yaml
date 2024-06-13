@@ -1,0 +1,78 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Presubmit
+
+on:
+  workflow_call:
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+  security-events: write
+  id-token: write
+  actions: read
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    uses: friendly-fhir/.github/.github/workflows/go-build-and-test.yaml@master
+    with:
+      packages: ./...
+      go-version-file: go.mod
+      short-test: true
+    permissions:
+      contents: read
+      id-token: write
+
+  license-manifest:
+    name: Vulnerability Scanning
+    uses: friendly-fhir/.github/.github/workflows/go-license.yaml@master
+    with:
+      go-version-file: go.mod
+      packages: ./...
+      artifact-name: license-report
+      go-licenses-version: latest
+      license-file-name: license-report.csv
+    permissions:
+      contents: read
+
+  vulnerability-scanning:
+    name: Vulnerability Scanning
+    uses: friendly-fhir/.github/.github/workflows/go-vulnerability-scanning.yaml@master
+    with:
+      go-version-file: go.mod
+      packages: ./...
+      govulncheck-version: latest
+    permissions:
+      contents: read
+      security-events: write
+
+  code-ql-analysis:
+    name: CodeQL Analysis
+    uses: friendly-fhir/.github/.github/workflows/go-codeql.yaml@master
+    with:
+      go-version-file: go.mod
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+  go-lint:
+    name: Go Lint
+    uses: friendly-fhir/.github/.github/workflows/go-lint.yaml@master
+    with:
+      go-version-file: go.mod
+    permissions:
+      contents: read
+
+  markdown-lint:
+    name: Markdown Lint
+    uses: friendly-fhir/.github/.github/workflows/markdown-lint.yaml@master
+    with:
+      globs: |
+        README.md
+        docs/**/*.md
+        .github/**/*.md
+    permissions:
+      contents: read

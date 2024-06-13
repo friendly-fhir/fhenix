@@ -1,10 +1,10 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-name: Promote Branch
+name: Promote Release
 
 on:
   push:
-    branches:
-      - develop
+    tags:
+      - "v*"
 
 permissions:
   contents: write
@@ -13,22 +13,19 @@ permissions:
   actions: read
 
 jobs:
-  presubmit:
-    name: Presubmit
+  continuous-integration:
+    name: Continuous Integration
     uses: ./.github/workflows/presubmit.yaml
     permissions:
       contents: read
-      id-token: write
       security-events: write
-      actions: read
 
-  promote:
-    name: Promote to Master
-    needs: presubmit
-    uses: friendly-fhir/.github/.github/workflows/promote-branch.yaml@master
+  release:
+    name: Release
+    needs: continuous-integration
+    uses: friendly-fhir/.github/.github/workflows/go-release.yaml@master
     with:
-      branch: master
-    secrets: inherit
+      snapshot: false
     permissions:
       contents: write
-      id-token: write
+      attestations: write

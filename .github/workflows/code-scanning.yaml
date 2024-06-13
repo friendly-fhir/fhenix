@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Scheduled Code-Scanning
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  vulnerability-scanning:
+    name: Vulnerability Scanning
+    uses: friendly-fhir/.github/.github/workflows/go-vulnerability-scanning.yaml@master
+    with:
+      govulncheck-version: latest
+      go-version-file: go.mod
+      packages: ./...
+    permissions:
+      contents: read
+      security-events: write
+
+  codeql-analysis:
+    name: CodeQL Analysis
+    uses: friendly-fhir/.github/.github/workflows/go-codeql.yaml@master
+    with:
+      go-version-file: go.mod
+    permissions:
+      contents: read
+      security-events: write
+      actions: read

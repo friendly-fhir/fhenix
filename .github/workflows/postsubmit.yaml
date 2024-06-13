@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Postsubmit
+
+on:
+  workflow_call:
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+  security-events: write
+  id-token: write
+  actions: read
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    uses: friendly-fhir/.github/.github/workflows/go-build-and-test.yaml@master
+    with:
+      packages: ./...
+      go-version-file: go.mod
+      short-test: false
+    permissions:
+      contents: read
+      id-token: write
+
+  snapshot-release:
+    name: Snapshot Release
+    uses: friendly-fhir/.github/.github/workflows/go-release.yaml@master
+    with:
+      snapshot: true
+    permissions:
+      contents: write
+      attestations: write
