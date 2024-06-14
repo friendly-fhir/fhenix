@@ -48,16 +48,6 @@ jobs:
       contents: read
       security-events: write
 
-  code-ql-analysis:
-    name: CodeQL Analysis
-    uses: friendly-fhir/.github/.github/workflows/go-codeql.yaml@master
-    with:
-      go-version-file: go.mod
-    permissions:
-      contents: read
-      security-events: write
-      actions: read
-
   go-lint:
     name: Go Lint
     uses: friendly-fhir/.github/.github/workflows/go-lint.yaml@master
