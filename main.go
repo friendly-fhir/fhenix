@@ -1,7 +1,14 @@
 package main
 
-import "github.com/friendly-fhir/fhenix/internal/cobra/cmd"
+import (
+	"os"
+
+	"github.com/friendly-fhir/fhenix/internal/cobra/cmd"
+)
 
 func main() {
-	cmd.Root.Execute()
+	if err := cmd.Root.Execute(); err != nil {
+		// The error is already logged by Cobra
+		os.Exit(1)
+	}
 }
