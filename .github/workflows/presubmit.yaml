@@ -70,6 +70,7 @@ jobs:
     name: Markdown Lint
     uses: friendly-fhir/.github/.github/workflows/markdown-lint.yaml@master
     with:
+      config: .markdownlint.jsonc
       globs: |
         README.md
         docs/**/*.md
