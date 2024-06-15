@@ -1,0 +1,35 @@
+
+transformations:
+  # Filter all abstract types or types that have derived profile types
+  - input:
+      type: StructureDefinition
+      if: '{{ or (.IsAbstract) (.HasDerived) }}'
+    output: 'fhir/r4/profile/{{ .Name | lowercase }}.go'
+    template: 'templates/r4/profiles.tmpl'
+
+  # Filter only primitive types
+  - input:
+      type: StructureDefinition
+      if: '{{ eq .Kind "primitive-type" }}'
+    output: 'fhir/r4/primitive/{{ .Name | lowercase }}.go'
+    template:
+      content: 'templates/r4/primitives.tmpl'
+
+  # Filter all concrete resources
+  - input:
+      type: StructureDefinition
+      if:
+        - '{{ not .IsAbstract }}'
+        - '{{ eq .Kind "resource" }}'
+    output: 'fhir/r4/resource/{{ .Name | lowercase }}.go'
+    template:
+      header: 'templates/r4/header.tmpl'
+      content: 'templates/r4/resources.tmpl'
+      footer: 'templates/r4/footer.tmpl'
+
+  # Filter only Patient resource to provide custom output
+  - inputs:
+      type: StructureDefinition
+      if: '{{ eq "Patient" .Name }}'
+    output: 'fhir/r4/patient_ext.go'
+    template: 'templates/r4/resource_patient.tmpl'
