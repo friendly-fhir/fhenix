@@ -25,6 +25,7 @@ jobs:
       id-token: write
       security-events: write
       actions: read
+    secrets: inherit
 
   promote:
     name: Promote to Master
