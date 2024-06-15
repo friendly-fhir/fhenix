@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/friendly-fhir/fhenix/internal/config"
+	"github.com/friendly-fhir/fhenix/internal/template"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"gopkg.in/yaml.v3"
@@ -18,6 +19,43 @@ func nodeFrom(t *testing.T, input string) *yaml.Node {
 	}
 
 	return &node
+}
+
+func TestVersion_UnmarshalYAML(t *testing.T) {
+	testCases := []struct {
+		name    string
+		input   *yaml.Node
+		want    config.Version
+		wantErr error
+	}{
+		{
+			name:  "valid",
+			input: nodeFrom(t, `"1"`),
+			want:  1,
+		}, {
+			name:    "invalid",
+			input:   nodeFrom(t, `"2"`),
+			wantErr: cmpopts.AnyError,
+		}, {
+			name:    "bad input",
+			input:   nodeFrom(t, `sfgdsg`),
+			wantErr: cmpopts.AnyError,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var got config.Version
+			err := tc.input.Decode(&got)
+			if got, want := err, tc.wantErr; !cmp.Equal(got, want, cmpopts.EquateErrors()) {
+				t.Errorf("UnmarshalYAML(%s) = %v, want = %v", tc.input.Value, got, want)
+			}
+
+			if got != tc.want {
+				t.Errorf("UnmarshalYAML(%s) = %v, want = %v", tc.input.Value, got, tc.want)
+			}
+		})
+	}
 }
 
 func TestType_UnmarshalYAML(t *testing.T) {
@@ -65,27 +103,20 @@ func TestType_UnmarshalYAML(t *testing.T) {
 	}
 }
 
-func TestConditions_UnmarshalYAML(t *testing.T) {
+func TestCondition_UnmarshalYAML(t *testing.T) {
 	strNode := nodeFrom(t, `"alias"`)
 	alias := &yaml.Node{Kind: yaml.AliasNode, Alias: strNode}
 	testCases := []struct {
 		name    string
 		input   *yaml.Node
-		want    config.Conditions
 		wantErr error
 	}{
 		{
 			name:  "scalar",
 			input: nodeFrom(t, `"scalar"`),
-			want:  config.Conditions{"scalar"},
-		}, {
-			name:  "sequence",
-			input: nodeFrom(t, `["sequence"]`),
-			want:  config.Conditions{"sequence"},
 		}, {
 			name:  "alias",
 			input: alias,
-			want:  config.Conditions{"alias"},
 		}, {
 			name:    "invalid",
 			input:   nodeFrom(t, `{}`),
@@ -99,19 +130,63 @@ func TestConditions_UnmarshalYAML(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var got config.Conditions
+			var got config.Condition
 			err := tc.input.Decode(&got)
 			if got, want := err, tc.wantErr; !cmp.Equal(got, want, cmpopts.EquateErrors()) {
 				t.Errorf("UnmarshalYAML(%s) = %v, want = %v", tc.input.Value, got, want)
-			}
-
-			if !cmp.Equal(got, tc.want, cmpopts.SortSlices(sortStrings)) {
-				t.Errorf("UnmarshalYAML(%s) = %v, want = %v", tc.input.Value, got, tc.want)
 			}
 		})
 	}
 }
 
-func sortStrings(lhs, rhs string) bool {
-	return lhs < rhs
+func TestCondition_Evaluate(t *testing.T) {
+	testCases := []struct {
+		name      string
+		input     *config.Condition
+		data      interface{}
+		wantValue bool
+	}{
+		{
+			name:      "empty",
+			input:     config.NewCondition(nil),
+			data:      nil,
+			wantValue: true,
+		}, {
+			name: "true",
+			input: config.NewCondition(
+				template.MustParse("template", `{{ . }}`),
+			),
+			data:      true,
+			wantValue: true,
+		}, {
+			name: "false",
+			input: config.NewCondition(
+				template.MustParse("template", `{{ . }}`),
+			),
+			data:      false,
+			wantValue: false,
+		}, {
+			name: "42",
+			input: config.NewCondition(
+				template.MustParse("template", `{{ . }}`),
+			),
+			data:      42,
+			wantValue: true,
+		}, {
+			name: "empty string",
+			input: config.NewCondition(
+				template.MustParse("template", `{{ . }}`),
+			),
+			data:      "",
+			wantValue: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got, want := tc.input.Evaluate(tc.data), tc.wantValue; got != want {
+				t.Errorf("Conditions.Evaluate(%v) = %v, want = %v", tc.data, got, want)
+			}
+		})
+	}
 }

@@ -2,16 +2,37 @@ package config
 
 import (
 	"errors"
+	"fmt"
 
+	"github.com/friendly-fhir/fhenix/internal/template"
 	"gopkg.in/yaml.v3"
 )
+
+type Version int
 
 // Transformation outlines a transformation process that takes an input and
 // produces an output.
 type Transformation struct {
+	Version  Version  `yaml:"version"`
 	Input    Input    `yaml:"input"`
 	Output   string   `yaml:"output"`
 	Template Template `yaml:"template"`
+}
+
+func (v *Version) UnmarshalYAML(node *yaml.Node) error {
+	var s string
+	if err := node.Decode(&s); err != nil {
+		return err
+	}
+
+	switch s {
+	case "1":
+		*v = 1
+	default:
+		return fmt.Errorf("invalid version: %v", s)
+	}
+
+	return nil
 }
 
 // Type is a configuration node that specifies the type of input to process.
@@ -47,35 +68,48 @@ var _ yaml.Unmarshaler = (*Type)(nil)
 
 // Conditions is a configuration node that specifies conditions that must be met for a
 // process to run.
-type Conditions []string
+type Condition struct {
+	tmpl *template.Template
+}
 
-func (c *Conditions) UnmarshalYAML(node *yaml.Node) error {
+// NewCondition creates a new condition with the given template.
+func NewCondition(tmpl *template.Template) *Condition {
+	return &Condition{tmpl: tmpl}
+}
+
+// Evaluate evaluates the conditions against the given data and returns true if
+// all of the conditions are met.
+func (c *Condition) Evaluate(data any) bool {
+	if c.tmpl == nil {
+		return true
+	}
+	truth, _ := c.tmpl.ExecuteBool(data)
+	return truth
+}
+
+func (c *Condition) UnmarshalYAML(node *yaml.Node) error {
 	switch node.Kind {
 	case yaml.ScalarNode:
-		var str string
-		if err := node.Decode(&str); err == nil {
-			*c = []string{str}
-		}
-	case yaml.SequenceNode:
-		var s []string
-		if err := node.Decode(&s); err != nil {
+		var tmpl template.Template
+		err := node.Decode(&tmpl)
+		if err != nil {
 			return err
 		}
-		*c = s
+		c.tmpl = &tmpl
 	default:
 		return errors.New("invalid if")
 	}
 	return nil
 }
 
-var _ yaml.Unmarshaler = (*Conditions)(nil)
+var _ yaml.Unmarshaler = (*Condition)(nil)
 
 type Input struct {
 	// Type is the type of input to process.
 	Type Type `yaml:"type"`
 
-	// If is a list of conditions that must be met for the process to run.
-	If Conditions `yaml:"if,omitempty"`
+	// If is a condition that must be met for the process to run.
+	If Condition `yaml:"if,omitempty"`
 }
 
 // Template is a struct that holds the header, content, and footer paths for a
