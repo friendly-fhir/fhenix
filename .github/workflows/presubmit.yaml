@@ -67,3 +67,22 @@ jobs:
         .github/**/*.md
     permissions:
       contents: read
+
+  # This check is a no-op that exists so that GitHub has a check to mark as
+  # required and successful.
+  check-success:
+    name: Check Success
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs:
+      - build-and-test
+      - license-manifest
+      - vulnerability-scanning
+      - go-lint
+      - markdown-lint
+    steps:
+      - name: Success
+        run: echo "All checks passed"
+        shell: bash
+    permissions:
+      contents: read
