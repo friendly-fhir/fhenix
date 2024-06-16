@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   greet:
-    uses: friendly-fhir/.github/.github/workflows/community-greet-new-contributors.yaml@master
+    uses: friendly-fhir/.github/.github/workflows/community-greet-new-contributor.yaml@master
     permissions:
       contents: read
       issues: write
