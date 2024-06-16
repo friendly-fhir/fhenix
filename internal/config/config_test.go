@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/friendly-fhir/fhenix/internal/config"
@@ -188,5 +189,18 @@ func TestCondition_Evaluate(t *testing.T) {
 				t.Errorf("Conditions.Evaluate(%v) = %v, want = %v", tc.data, got, want)
 			}
 		})
+	}
+}
+
+func TestConfig(t *testing.T) {
+	file, err := os.Open("testdata/config.yaml")
+	if err != nil {
+		t.Fatalf("os.Open: %v", err)
+	}
+	defer file.Close()
+
+	var cfg config.Config
+	if err := yaml.NewDecoder(file).Decode(&cfg); err != nil {
+		t.Fatalf("yaml.NewDecoder.Decode: %v", err)
 	}
 }

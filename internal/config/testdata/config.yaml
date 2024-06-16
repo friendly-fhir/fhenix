@@ -1,0 +1,41 @@
+# The version of this configuration format
+version: 1
+
+# The name and version of the FHIR Package, as found on simplifier.net
+package:
+  name: hl7.fhir.r4.core
+  version: "4.0.1"
+
+# The output transformations of the parsed FHIR content
+transformations:
+  # Filter all abstract types or types that have derived profile types
+  - input:
+      type: StructureDefinition
+      if: '{{ or (.IsAbstract) (.HasDerived) }}'
+    output: 'fhir/r4/profile/{{ .Name | lowercase }}.go'
+    template: 'templates/r4/profiles.tmpl'
+
+  # Filter only primitive types
+  - input:
+      type: StructureDefinition
+      if: '{{ eq .Kind "primitive-type" }}'
+    output: 'fhir/r4/primitive/{{ .Name | lowercase }}.go'
+    template:
+      content: 'templates/r4/primitives.tmpl'
+
+  # Filter all concrete resources
+  - input:
+      type: StructureDefinition
+      if: '{{ and (not .IsAbstract) (eq .Kind "resource") }}'
+    output: 'fhir/r4/resource/{{ .Name | lowercase }}.go'
+    template:
+      header: 'templates/r4/header.tmpl'
+      content: 'templates/r4/resources.tmpl'
+      footer: 'templates/r4/footer.tmpl'
+
+  # Filter only Patient resource to provide custom output
+  - inputs:
+      type: StructureDefinition
+      if: '{{ .Name | eq "Patient" }}'
+    output: 'fhir/r4/patient_ext.go'
+    template: 'templates/r4/resource_patient.tmpl'
