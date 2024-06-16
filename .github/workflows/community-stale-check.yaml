@@ -1,4 +1,4 @@
-
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Check for Stale Issues and Pull Requests
 
 on:
@@ -17,3 +17,4 @@ jobs:
       contents: read
       issues: write
       pull-requests: write
+    secrets: inherit
