@@ -19,6 +19,8 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      id-token: write
+      actions: read
 
   release:
     name: Release
@@ -29,3 +31,4 @@ jobs:
     permissions:
       contents: write
       attestations: write
+      id-token: write
