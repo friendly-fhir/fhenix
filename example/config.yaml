@@ -1,6 +1,12 @@
 # The version of this configuration format
 version: 1
 
+# The name and version of the FHIR Package, as found on simplifier.net
+package:
+  name: hl7.fhir.r4.core
+  version: "4.0.1"
+
+# The output transformations of the parsed FHIR content
 transformations:
   # Filter all abstract types or types that have derived profile types
   - input:

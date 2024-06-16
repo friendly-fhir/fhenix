@@ -130,6 +130,12 @@ type Template struct {
 	Footer string `yaml:"footer,omitempty"`
 }
 
+type Package struct {
+	Name    string `yaml:"name"`
+	Version string `yaml:"version"`
+}
+
 type Config struct {
+	Package         Package          `yaml:"package"`
 	Transformations []Transformation `yaml:"transformation"`
 }
