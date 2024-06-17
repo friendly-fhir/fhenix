@@ -27,24 +27,6 @@ type Fetcher interface {
 	Fetch(url string) (io.ReadCloser, error)
 }
 
-type FetcherFunc func(url string) (io.ReadCloser, error)
-
-func (f FetcherFunc) Fetch(url string) (io.ReadCloser, error) {
-	return f(url)
-}
-
-// PackageCache is a cache for FHIR packages.
-type PackageCache struct {
-	// Registry is the URL of the FHIR registry (e.g. https://simplifier.net)
-	Registry string
-
-	// Root is the root directory of the cache.
-	Root string
-
-	// Fetcher is the fetching mechanism.
-	Fetcher Fetcher
-}
-
 // Package represents a versioned and named FHIR package from a registry.
 type Package struct {
 	name    string
@@ -88,12 +70,52 @@ func ParsePackage(s string) (*Package, error) {
 	return NewPackage(parts[0], parts[1]), nil
 }
 
+type Listener interface {
+	OnFetchStart(pkg *Package)
+	OnFetchEnd(pkg *Package, err error)
+	OnCacheHit(pkg *Package)
+}
+
+type BaseListener struct{}
+
+func (*BaseListener) OnFetchStart(pkg *Package)          {}
+func (*BaseListener) OnFetchEnd(pkg *Package, err error) {}
+func (*BaseListener) OnCacheHit(pkg *Package)            {}
+
+type FetcherFunc func(url string) (io.ReadCloser, error)
+
+func (f FetcherFunc) Fetch(url string) (io.ReadCloser, error) {
+	return f(url)
+}
+
+// PackageCache is a cache for FHIR packages.
+type PackageCache struct {
+	// Registry is the URL of the FHIR registry (e.g. https://simplifier.net)
+	Registry string
+
+	// Root is the root directory of the cache.
+	Root string
+
+	// Fetcher is the fetching mechanism.
+	Fetcher Fetcher
+
+	// Listener is the listener for fetch events.
+	Listener Listener
+}
+
 // Clear removes the package from the cache.
 func (r *PackageCache) Clear(pkg *Package) error {
 	if !r.Has(pkg) {
 		return nil
 	}
 	return os.RemoveAll(r.path(pkg))
+}
+
+func (r *PackageCache) listener() Listener {
+	if r.Listener != nil {
+		return r.Listener
+	}
+	return &BaseListener{}
 }
 
 // Get returns the directory entries for the package and version.
@@ -136,9 +158,6 @@ func (r *PackageCache) ForceFetch(ctx context.Context, pkg *Package) error {
 
 // Fetch fetches the package and version.
 func (r *PackageCache) Fetch(ctx context.Context, pkg *Package) error {
-	if r.Has(pkg) {
-		return nil
-	}
 	return r.fetch(ctx, pkg, false)
 }
 
@@ -180,18 +199,27 @@ func (r *PackageCache) fetcher() Fetcher {
 }
 
 func (r *PackageCache) fetch(ctx context.Context, pkg *Package, force bool) error {
+	if !force && r.Has(pkg) {
+		r.listener().OnCacheHit(pkg)
+		return nil
+	}
+
 	url := fmt.Sprintf("%s/%s/%s", r.registry(), pkg.Name(), pkg.Version())
+	r.listener().OnFetchStart(pkg)
 	pkgFile, err := r.fetcher().Fetch(url)
 	if err != nil {
+		r.listener().OnFetchEnd(pkg, err)
 		return err
 	}
 	root := r.path(pkg)
 	if err := os.MkdirAll(root, 0755); err != nil {
+		r.listener().OnFetchEnd(pkg, err)
 		return err
 	}
 	path := filepath.Join(root, "package.tar.gz")
 	file, err := os.Create(path)
 	if err != nil {
+		r.listener().OnFetchEnd(pkg, err)
 		return err
 	}
 	success := false
@@ -206,6 +234,7 @@ func (r *PackageCache) fetch(ctx context.Context, pkg *Package, force bool) erro
 
 	gzReader, err := gzip.NewReader(reader)
 	if err != nil {
+		r.listener().OnFetchEnd(pkg, err)
 		return err
 	}
 	defer gzReader.Close()
@@ -217,6 +246,7 @@ func (r *PackageCache) fetch(ctx context.Context, pkg *Package, force bool) erro
 			break
 		}
 		if err != nil {
+			r.listener().OnFetchEnd(pkg, err)
 			return err
 		}
 
@@ -248,6 +278,7 @@ func (r *PackageCache) fetch(ctx context.Context, pkg *Package, force bool) erro
 		path := r.path(pkg, name)
 		file, err := os.Create(path)
 		if err != nil {
+			r.listener().OnFetchEnd(pkg, err)
 			return err
 		}
 		pkgReader := io.TeeReader(tarReader, file)
@@ -264,6 +295,7 @@ func (r *PackageCache) fetch(ctx context.Context, pkg *Package, force bool) erro
 		}
 	}
 	success = true
+	r.listener().OnFetchEnd(pkg, nil)
 	return nil
 }
 
