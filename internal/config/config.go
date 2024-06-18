@@ -3,6 +3,9 @@ package config
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"strings"
 
 	"github.com/friendly-fhir/fhenix/internal/template"
 	"gopkg.in/yaml.v3"
@@ -13,10 +16,40 @@ type Version int
 // Transformation outlines a transformation process that takes an input and
 // produces an output.
 type Transformation struct {
-	Version  Version  `yaml:"version"`
-	Input    Input    `yaml:"input"`
-	Output   string   `yaml:"output"`
-	Template Template `yaml:"template"`
+	Version  Version `yaml:"version"`
+	Input    Input   `yaml:"input"`
+	Output   Output  `yaml:"output"`
+	Template string  `yaml:"template"`
+}
+
+type Output struct {
+	tmpl *template.Template
+}
+
+func (o *Output) UnmarshalYAML(node *yaml.Node) error {
+	switch node.Kind {
+	case yaml.ScalarNode:
+		var tmpl template.Template
+		err := node.Decode(&tmpl)
+		if err != nil {
+			return err
+		}
+		o.tmpl = &tmpl
+	default:
+		return errors.New("invalid output")
+	}
+	return nil
+}
+
+func (o *Output) Evaluate(data any) (string, error) {
+	if o.tmpl == nil {
+		return "", nil
+	}
+	var sb strings.Builder
+	if err := o.tmpl.Execute(&sb, data); err != nil {
+		return "", err
+	}
+	return sb.String(), nil
 }
 
 func (v *Version) UnmarshalYAML(node *yaml.Node) error {
@@ -112,24 +145,6 @@ type Input struct {
 	If Condition `yaml:"if,omitempty"`
 }
 
-// Template is a struct that holds the header, content, and footer paths for a
-// template.
-type Template struct {
-	// Header is the path to the header template. May be omitted.
-	// Headers are used only on the first invocation of the template for any given
-	// file path.
-	Header string `yaml:"header,omitempty"`
-
-	// Content is the path to the content template.
-	// Content is used on every invocation of the template for any given file path.
-	Content string `yaml:"content,omitempty"`
-
-	// Footer is the path to the footer template. May be omitted.
-	// Footers are used only on the last invocation of the template for any given
-	// file path.
-	Footer string `yaml:"footer,omitempty"`
-}
-
 type Package struct {
 	Name    string `yaml:"name"`
 	Version string `yaml:"version"`
@@ -137,5 +152,33 @@ type Package struct {
 
 type Config struct {
 	Package         Package          `yaml:"package"`
-	Transformations []Transformation `yaml:"transformation"`
+	Transformations []Transformation `yaml:"transformations"`
+}
+
+// FromYAML parses a configuration from a YAML byte slice.
+func FromYAML(data []byte) (*Config, error) {
+	var cfg Config
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
+}
+
+// FromReader parses a configuration from an io.Reader.
+func FromReader(r io.Reader) (*Config, error) {
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	return FromYAML(data)
+}
+
+// FromFile parses a configuration from a file.
+func FromFile(path string) (*Config, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	return FromReader(file)
 }

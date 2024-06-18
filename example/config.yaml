@@ -20,18 +20,14 @@ transformations:
       type: StructureDefinition
       if: '{{ eq .Kind "primitive-type" }}'
     output: 'fhir/r4/primitive/{{ .Name | lowercase }}.go'
-    template:
-      content: 'templates/r4/primitives.tmpl'
+    template: 'templates/r4/primitives.tmpl'
 
   # Filter all concrete resources
   - input:
       type: StructureDefinition
       if: '{{ and (not .IsAbstract) (eq .Kind "resource") }}'
     output: 'fhir/r4/resource/{{ .Name | lowercase }}.go'
-    template:
-      header: 'templates/r4/header.tmpl'
-      content: 'templates/r4/resources.tmpl'
-      footer: 'templates/r4/footer.tmpl'
+    template: 'templates/r4/resources.tmpl'
 
   # Filter only Patient resource to provide custom output
   - inputs:
