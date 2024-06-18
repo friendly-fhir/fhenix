@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -119,12 +118,17 @@ func (r *PackageCache) listener() Listener {
 }
 
 // Get returns the directory entries for the package and version.
-func (r *PackageCache) Get(pkg *Package) ([]fs.DirEntry, error) {
-	dir, err := os.ReadDir(r.path(pkg))
+func (r *PackageCache) Get(pkg *Package) ([]string, error) {
+	root := r.path(pkg)
+	dir, err := os.ReadDir(root)
 	if err != nil {
 		return nil, err
 	}
-	return dir, nil
+	var entries []string
+	for _, entry := range dir {
+		entries = append(entries, filepath.Join(root, entry.Name()))
+	}
+	return entries, nil
 }
 
 // Path returns the path to the specified package.
@@ -144,7 +148,7 @@ func (r *PackageCache) path(pkg *Package, parts ...string) string {
 
 // FetchAndGet fetches the versioned package if it is not already in the cache,
 // and returns the directory entries for the package.
-func (r *PackageCache) FetchAndGet(ctx context.Context, pkg *Package) ([]fs.DirEntry, error) {
+func (r *PackageCache) FetchAndGet(ctx context.Context, pkg *Package) ([]string, error) {
 	if err := r.Fetch(ctx, pkg); err != nil {
 		return nil, err
 	}
