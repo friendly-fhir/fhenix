@@ -10,11 +10,18 @@ interface, and provides sensible defaults for the substitution.
 package template
 
 import (
+	"compress/gzip"
+	"encoding/base32"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"html"
 	"strconv"
 	"strings"
 	"text/template"
+	"unicode"
 
+	"github.com/friendly-fhir/fhenix/internal/model"
 	"github.com/iancoleman/strcase"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -76,6 +83,14 @@ func (t *Template) Templates() []*Template {
 func (t *Template) Funcs(funcs FuncMap) *Template {
 	t.Template.Funcs(funcs)
 	return t
+}
+
+// ModelFuncs adds additional functionality to a template that has access to a
+// modeled FHIR IG.
+func (t *Template) ModelFuncs(m *model.Model) *Template {
+	return t.Funcs(FuncMap{
+		"typeof": func(url string) *model.Type { return m.Type(url) },
+	})
 }
 
 // Parse parses text as a template body for t.
@@ -178,17 +193,16 @@ func Must(t *Template, err error) *Template {
 }
 
 var funcMap = FuncMap{
-	"uppercase": cases.Upper(language.English).String,
-	"lowercase": cases.Lower(language.English).String,
-	"titlecase": cases.Title(language.English).String,
-
-	"fold": cases.Fold().String,
-
+	"uppercase":  cases.Upper(language.English).String,
+	"lowercase":  cases.Lower(language.English).String,
+	"titlecase":  cases.Title(language.English).String,
 	"pascalcase": strcase.ToCamel,
 	"camelcase":  strcase.ToLowerCamel,
 	"snakecase":  strcase.ToSnake,
 	"kebabcase":  strcase.ToKebab,
 	"shoutcase":  strcase.ToScreamingSnake,
+
+	"fold": cases.Fold().String,
 
 	"trim":  strings.TrimSpace,
 	"ltrim": strings.TrimLeft,
@@ -206,13 +220,24 @@ var funcMap = FuncMap{
 		return strings.ReplaceAll(text, "\n", suffix+"\n") + suffix
 	},
 	"indent": func(indent int, text string) string {
-		return strings.ReplaceAll(text, "\n", "\n"+strings.Repeat(" ", indent))
+		space := strings.Repeat(" ", indent)
+		return space + strings.ReplaceAll(text, "\n", "\n"+space)
+	},
+	"tabindent": func(indent int, text string) string {
+		tab := strings.Repeat("\t", indent)
+		return tab + strings.ReplaceAll(text, "\n", "\n"+tab)
 	},
 	"resize": func(columns int, text string) string {
 		var sb strings.Builder
 		lines := strings.Split(text, "\n")
 		length := 0
 		for _, line := range lines {
+			// Preserve empty line breaks
+			if strings.TrimSpace(line) == "" {
+				sb.WriteString("\n")
+				length = 0
+				continue
+			}
 			tokens := strings.Fields(line)
 			for i, token := range tokens {
 				if i > 0 && length+len(token) > columns {
@@ -226,8 +251,51 @@ var funcMap = FuncMap{
 		}
 		return strings.TrimSpace(sb.String())
 	},
+	"strip": func(content string) string {
+		return strings.Map(func(r rune) rune {
+			if unicode.IsLetter(r) || unicode.IsNumber(r) {
+				return r
+			}
+			return -1
+		}, content)
+	},
+	"quote":    strconv.Quote,
+	"unquote":  strconv.Unquote,
+	"escape":   html.EscapeString,
+	"unescape": html.UnescapeString,
 
 	"cutset":    func(set, text string) string { return strings.Trim(text, set) },
 	"cutprefix": func(prefix, text string) string { return strings.TrimPrefix(text, prefix) },
 	"cutsuffix": func(suffix, text string) string { return strings.TrimSuffix(text, suffix) },
+
+	"gzip": func(content string) string {
+		var sb strings.Builder
+		fmt.Fprintf(gzip.NewWriter(&sb), "%s", content)
+		return strconv.Quote(sb.String())
+	},
+
+	"base32": func(content string) string {
+		return base32.StdEncoding.EncodeToString([]byte(content))
+	},
+	"base64": func(content string) string {
+		return base64.StdEncoding.EncodeToString([]byte(content))
+	},
+
+	"json": func(data any) string {
+		b, _ := json.Marshal(data)
+		return string(b)
+	},
+}
+
+func init() {
+	strcase.ConfigureAcronym("ID", "id")
+	strcase.ConfigureAcronym("URL", "url")
+	strcase.ConfigureAcronym("URI", "uri")
+	strcase.ConfigureAcronym("UUID", "uuid")
+	strcase.ConfigureAcronym("OID", "oid")
+	strcase.ConfigureAcronym("JSON", "json")
+	strcase.ConfigureAcronym("XML", "xml")
+	strcase.ConfigureAcronym("HTML", "html")
+	strcase.ConfigureAcronym("HTTP", "http")
+	strcase.ConfigureAcronym("HTTPS", "https")
 }
