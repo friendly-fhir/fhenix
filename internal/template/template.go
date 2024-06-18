@@ -45,7 +45,7 @@ func MustParse(name, text string) *Template {
 
 func (t *Template) UnmarshalYAML(node *yaml.Node) error {
 	if t.Template == nil {
-		t.Template = template.New("")
+		t.Template = template.New("").Funcs(funcMap)
 	}
 
 	var text string
@@ -194,12 +194,40 @@ var funcMap = FuncMap{
 	"ltrim": strings.TrimLeft,
 	"rtrim": strings.TrimRight,
 
-	"fields": strings.Fields,
-	"split":  strings.Split,
-	"join":   strings.Join,
-	"repeat": strings.Repeat,
+	"fields":  strings.Fields,
+	"split":   func(sep, text string) []string { return strings.Split(text, sep) },
+	"join":    func(sep string, a []string) string { return strings.Join(a, sep) },
+	"repeat":  func(n int, text string) string { return strings.Repeat(text, n) },
+	"replace": func(old, new, text string) string { return strings.ReplaceAll(text, old, new) },
+	"prefix": func(prefix, text string) string {
+		return prefix + strings.ReplaceAll(text, "\n", "\n"+prefix)
+	},
+	"suffix": func(suffix, text string) string {
+		return strings.ReplaceAll(text, "\n", suffix+"\n") + suffix
+	},
+	"indent": func(indent int, text string) string {
+		return strings.ReplaceAll(text, "\n", "\n"+strings.Repeat(" ", indent))
+	},
+	"resize": func(columns int, text string) string {
+		var sb strings.Builder
+		lines := strings.Split(text, "\n")
+		length := 0
+		for _, line := range lines {
+			tokens := strings.Fields(line)
+			for i, token := range tokens {
+				if i > 0 && length+len(token) > columns {
+					sb.WriteString("\n")
+					length = 0
+				}
+				sb.WriteString(token)
+				sb.WriteString(" ")
+				length += len(token) + 1
+			}
+		}
+		return strings.TrimSpace(sb.String())
+	},
 
-	"cutset":    strings.Trim,
-	"cutPrefix": strings.TrimPrefix,
-	"cutSuffix": strings.TrimSuffix,
+	"cutset":    func(set, text string) string { return strings.Trim(text, set) },
+	"cutprefix": func(prefix, text string) string { return strings.TrimPrefix(text, prefix) },
+	"cutsuffix": func(suffix, text string) string { return strings.TrimSuffix(text, suffix) },
 }
