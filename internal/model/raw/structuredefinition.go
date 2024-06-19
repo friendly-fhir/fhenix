@@ -20,9 +20,24 @@ type Extension struct {
 	ValueInteger int    `json:"valueInteger,omitempty"`
 }
 
+type Extensions []Extension
+
+func (e Extensions) GetByURL(url string) *Extension {
+	for _, ext := range e {
+		if ext.URL == url {
+			return &ext
+		}
+	}
+	return nil
+}
+
 type Type struct {
 	Code       string      `json:"code"`
 	Extensions []Extension `json:"extension"`
+}
+
+func (t *Type) Extension(url string) *Extension {
+	return Extensions(t.Extensions).GetByURL(url)
 }
 
 type ElementDefinition struct {
@@ -33,13 +48,14 @@ type ElementDefinition struct {
 	Short      string `json:"short"`
 	Definition string `json:"definition"`
 	Comment    string `json:"comment"`
-	Type
+	Types      []Type `json:"type"`
 }
 
 // StructureDefinition represents a FHIR Profile StructureDefinition
 type StructureDefinition struct {
 	ResourceType   string          `json:"resourceType"`
 	BaseDefinition string          `json:"baseDefinition"`
+	Status         string          `json:"status"`
 	URL            string          `json:"url"`
 	Name           string          `json:"name"`
 	Kind           string          `json:"kind"`
