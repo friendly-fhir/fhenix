@@ -4,6 +4,8 @@ go 1.22.3
 
 require github.com/spf13/cobra v1.8.0
 
+require github.com/gertd/go-pluralize v0.2.0 // indirect
+
 require (
 	github.com/google/go-cmp v0.6.0
 	github.com/iancoleman/strcase v0.3.0

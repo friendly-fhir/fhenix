@@ -16,6 +16,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
+	"io"
+	"reflect"
 	"strconv"
 	"strings"
 	"text/template"
@@ -219,6 +221,12 @@ var funcMap = FuncMap{
 	"suffix": func(suffix, text string) string {
 		return strings.ReplaceAll(text, "\n", suffix+"\n") + suffix
 	},
+	"append": func(suffix, content string) any {
+		return content + suffix
+	},
+	"prepend": func(prefix, content string) any {
+		return prefix + content
+	},
 	"indent": func(indent int, text string) string {
 		space := strings.Repeat(" ", indent)
 		return space + strings.ReplaceAll(text, "\n", "\n"+space)
@@ -285,6 +293,17 @@ var funcMap = FuncMap{
 		b, _ := json.Marshal(data)
 		return string(b)
 	},
+
+	"first": func(v any) any {
+		return reflect.ValueOf(v).Index(0).Interface()
+	},
+	"last": func(v any) any {
+		rv := reflect.ValueOf(v)
+		return rv.Index(rv.Len() - 1).Interface()
+	},
+
+	"commonbase": model.CommonBase,
+	"char":       func(n int, text string) string { return string(text[n]) },
 }
 
 func init() {
