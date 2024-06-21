@@ -95,7 +95,7 @@ func (e *Engine) Run(m *model.Model) error {
 				errs = append(errs, err)
 				continue
 			}
-			if err := run(m, e.output, transforms); err != nil {
+			if err := run(e.output, transforms); err != nil {
 				errs = append(errs, err)
 				continue
 			}
@@ -106,7 +106,7 @@ func (e *Engine) Run(m *model.Model) error {
 				errs = append(errs, err)
 				continue
 			}
-			if err := run(m, e.output, transforms); err != nil {
+			if err := run(e.output, transforms); err != nil {
 				errs = append(errs, err)
 				continue
 			}
@@ -115,7 +115,7 @@ func (e *Engine) Run(m *model.Model) error {
 	return errors.Join(errs...)
 }
 
-func run[T any](m *model.Model, output string, transforms *transform[T]) error {
+func run[T any](output string, transforms *transform[T]) error {
 	var errs []error
 	for path, types := range transforms.Inputs {
 		if len(types) != 1 {

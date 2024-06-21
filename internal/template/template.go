@@ -16,7 +16,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
-	"io"
 	"reflect"
 	"strconv"
 	"strings"
@@ -85,14 +84,6 @@ func (t *Template) Templates() []*Template {
 func (t *Template) Funcs(funcs FuncMap) *Template {
 	t.Template.Funcs(funcs)
 	return t
-}
-
-// ModelFuncs adds additional functionality to a template that has access to a
-// modeled FHIR IG.
-func (t *Template) ModelFuncs(m *model.Model) *Template {
-	return t.Funcs(FuncMap{
-		"typeof": func(url string) *model.Type { return m.Type(url) },
-	})
 }
 
 // Parse parses text as a template body for t.
