@@ -207,14 +207,14 @@ func TestPackageCache_Fetch(t *testing.T) {
 			wantErr: nil,
 		}, {
 			name: "package does not exist and fails to fetch",
-			pkg:  fhirig.NewPackage("noexist.pkg.name", "420.6.9"),
+			pkg:  fhirig.NewPackage("bad.noexist.pkg.name", "420.6.9"),
 			fetcher: fhirig.FetcherFunc(func(url string) (io.ReadCloser, error) {
 				return nil, testError
 			}),
 			wantErr: testError,
 		}, {
 			name: "package does not exist and fetches bad gzip file",
-			pkg:  fhirig.NewPackage("noexist.pkg.name", "420.6.9"),
+			pkg:  fhirig.NewPackage("bad.noexist.pkg.name", "420.6.9"),
 			fetcher: fhirig.FetcherFunc(func(url string) (io.ReadCloser, error) {
 				return io.NopCloser(iotest.ErrReader(testError)), nil
 			}),
@@ -239,14 +239,40 @@ func TestPackageCache_Fetch(t *testing.T) {
 	}
 }
 
+type SquawkListener struct {
+	t *testing.T
+	fhirig.BaseListener
+}
+
+func (l *SquawkListener) OnFetchStart(pkg *fhirig.Package) {
+	l.t.Logf("Fetching %q", pkg.String())
+}
+
+func (l *SquawkListener) OnFetchEnd(pkg *fhirig.Package, err error) {
+	if err != nil {
+		l.t.Errorf("Fetch of %q failed: %v", pkg.String(), err)
+	} else {
+		l.t.Logf("Fetch of %q succeeded", pkg.String())
+	}
+}
+
+func (l *SquawkListener) OnCacheHit(pkg *fhirig.Package) {
+	l.t.Logf("Cache hit for %q", pkg.String())
+}
+
 func TestRealFetch(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
 	}
 	sut := &fhirig.PackageCache{
-		Root: "testdata/real",
+		Root:     "testdata/real",
+		Listener: &SquawkListener{t: t},
 	}
 	pkg := fhirig.NewPackage("hl7.fhir.us.core", "6.1.0")
+	if err := sut.Clear(pkg); err != nil {
+		t.Fatalf("PackageCache.Clear(%q) = %v; want nil", pkg.String(), err)
+	}
+
 	err := sut.Fetch(context.Background(), pkg)
 	if err != nil {
 		t.Logf("PackageCache.Fetch(%q) = %v; want nil", pkg.String(), err)
