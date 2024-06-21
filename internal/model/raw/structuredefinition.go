@@ -10,7 +10,7 @@ generating for FHIR resources.
 package raw
 
 type BackboneElement struct {
-	Element []ElementDefinition `json:"element"`
+	Element []*ElementDefinition `json:"element"`
 }
 
 type Extension struct {
@@ -41,14 +41,24 @@ func (t *Type) Extension(url string) *Extension {
 }
 
 type ElementDefinition struct {
-	ID         string `json:"id"`
-	Path       string `json:"path"`
-	Min        int    `json:"min"`
-	Max        string `json:"max"`
-	Short      string `json:"short"`
-	Definition string `json:"definition"`
-	Comment    string `json:"comment"`
-	Types      []Type `json:"type"`
+	ID   string `json:"id"`
+	Path string `json:"path"`
+	Min  int    `json:"min"`
+	Max  string `json:"max"`
+	Base *struct {
+		Min int    `json:"min"`
+		Max string `json:"max"`
+	} `json:"base,omitempty"`
+	Short      string   `json:"short"`
+	Definition string   `json:"definition"`
+	Comment    string   `json:"comment"`
+	Types      []Type   `json:"type"`
+	Binding    *Binding `json:"binding,omitempty"`
+}
+
+type Binding struct {
+	Strength string `json:"strength"`
+	ValueSet string `json:"valueSet"`
 }
 
 // StructureDefinition represents a FHIR Profile StructureDefinition
@@ -58,6 +68,7 @@ type StructureDefinition struct {
 	Status         string          `json:"status"`
 	URL            string          `json:"url"`
 	Name           string          `json:"name"`
+	Type           string          `json:"type"`
 	Kind           string          `json:"kind"`
 	Abstract       bool            `json:"abstract"`
 	Short          string          `json:"short"`

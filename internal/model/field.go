@@ -1,23 +1,45 @@
 package model
 
 type Field struct {
-	// Name represents the name of the field type
 	Name string
-
-	// Path is the key path to the field in the type
 	Path string
 
-	// Type is a reference to the underlying type of this field
-	Type *Type
-
+	Short      string
+	Comment    string
 	Definition string
 
-	Comment string
+	Type         *Type
+	Alternatives []*Type
+	Builtin      *Builtin
 
-	// Cardinality is the cardinality of the defined type.
-	Cardinality Cardinality
+	Cardinality     Cardinality
+	BaseCardinality Cardinality
 }
 
-func (f *Field) IsBuiltin() bool {
-	return f.Type.Kind == "builtin"
+func (f *Field) IsScalar() bool {
+	return f.Cardinality.IsScalar()
+}
+
+func (f *Field) IsOptional() bool {
+	return f.Cardinality.IsOptional()
+}
+
+func (f *Field) IsList() bool {
+	return f.Cardinality.IsList()
+}
+
+func (f *Field) IsUnboundedList() bool {
+	return f.Cardinality.IsUnboundedList()
+}
+
+func (f *Field) IsDisabled() bool {
+	return f.Cardinality.IsDisabled()
+}
+
+func (f *Field) IsRequired() bool {
+	return f.Cardinality.IsRequired()
+}
+
+func (f *Field) IsNarrowed() bool {
+	return f.Cardinality.Min > f.BaseCardinality.Min || f.Cardinality.Max < f.BaseCardinality.Max
 }

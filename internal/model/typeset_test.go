@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/friendly-fhir/fhenix/internal/fhirig"
-	"github.com/friendly-fhir/fhenix/internal/model/v2"
+	"github.com/friendly-fhir/fhenix/internal/model"
 	"github.com/google/go-cmp/cmp"
 )
 

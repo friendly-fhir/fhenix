@@ -3,8 +3,8 @@ package model_test
 import (
 	"testing"
 
+	"github.com/friendly-fhir/fhenix/internal/model"
 	"github.com/friendly-fhir/fhenix/internal/model/raw"
-	"github.com/friendly-fhir/fhenix/internal/model/v2"
 	"github.com/google/go-cmp/cmp"
 )
 

@@ -1,89 +1,110 @@
 package model
 
-import "regexp"
+import (
+	"github.com/friendly-fhir/fhenix/internal/fhirig"
+	"github.com/friendly-fhir/fhenix/internal/model/raw"
+)
+
+type TypeSource struct {
+	Package             *fhirig.Package
+	File                string
+	StructureDefinition *raw.StructureDefinition
+}
+
+type TypeKind string
+
+const (
+	TypeKindResource    TypeKind = "resource"
+	TypeKindPrimitive   TypeKind = "primitive-type"
+	TypeKindComplexType TypeKind = "complex-type"
+	TypeKindBackbone    TypeKind = "backbone"
+)
 
 type Type struct {
-	// Package is the package name of the type definition
-	Package string
+	Source *TypeSource
 
-	// Version is the version of the package
-	Version string
-
-	// Status is the publication status of the type definition
-	Status string
-
-	// Name represents the actual name of the defined type
-	Name string
-
-	// Kind represents the kind of type definition
-	Kind string
-
-	// The base type (if one exists)
-	Base *Type
-
-	// Representation is how the type is represented when serialized. By default
-	// all types are serialized as structures; but primitive types have inline
-	// representations instead.
-	Representation Repr
-
-	// Regexp is the regular expression that the type must match.
-	Regex *regexp.Regexp
-
-	// Short is the short description provided to the structure definition.
-	Short string
-
-	// Description is the full description provided to the structure definition.
+	Short       string
+	Comment     string
 	Description string
 
-	// Derivation is the derivation type of the structure definition.
-	Derivation string
+	URL  string
+	Name string
+	Kind TypeKind
 
-	// Comment represents a comment that has been applied to a structure definition.
-	Comment string
+	Base    *Type
+	Derived []*Type
 
-	// IsAbstract is set to true if a type is an abstract definition and not a
-	// concrete object instance.
 	IsAbstract bool
 
-	// URL is the string URL of the type definition
-	URL string
+	Fields   []*Field
+	SubTypes []*Type
+}
 
-	// Fields is a mapping of all the field names to the underlying type
-	// definition.
-	Fields map[string]*Field
+func CommonBase(types []*Type) *Type {
+	if len(types) == 0 {
+		return nil
+	}
+	base := types[0]
+	for _, t := range types[1:] {
+		base = commonBase(base, t)
+	}
+	return base
+}
 
-	// DerivedTypes is a list of all the types that are derived from this type.
-	DerivedTypes []*Type
+func commonBase(t1, t2 *Type) *Type {
+	if t1 == t2 {
+		return t1
+	}
+	if t1.Base == nil && t2.Base == nil {
+		return nil
+	}
+	if t1.Base != nil {
+		t1 = t1.Base
+	}
+	if t2.Base != nil {
+		t2 = t2.Base
+	}
+	return commonBase(t1, t2)
+}
 
-	// NestedTypes is a list of all the child types that are defined in this type.
-	// This corresponds to nested types in the structure definition, such as
-	// backbone elements.
-	NestedTypes []*Type
+func (t *Type) Package() string {
+	return t.Source.Package.Name()
+}
+
+func (t *Type) Version() string {
+	return t.Source.Package.Version()
+}
+
+func (t *Type) HasDerived() bool {
+	return len(t.Derived) > 0
 }
 
 func (t *Type) IsConstraint() bool {
-	return t.Derivation == "constraint"
+	return t.Source.StructureDefinition.Derivation == "constraint"
 }
 
 func (t *Type) IsSpecialization() bool {
-	return t.Derivation == "specialization"
+	return t.Source.StructureDefinition.Derivation == "specialization"
 }
 
 func (t *Type) IsResource() bool {
-	return t.Kind == "resource"
+	return t.Kind == TypeKindResource
 }
 
 func (t *Type) IsPrimitive() bool {
-	return t.Kind == "primitive-type"
+	return t.Kind == TypeKindPrimitive
 }
 
 func (t *Type) IsComplex() bool {
-	return t.Kind == "complex-type"
+	return t.Kind == TypeKindComplexType
 }
 
-// IsExtension returns true if the type is derived from an extension.
+func (t *Type) IsBackbone() bool {
+	return t.Kind == TypeKindBackbone
+}
+
 func (t *Type) IsExtension() bool {
-	if t.Kind != "complex-type" {
+	if t.Kind != TypeKindComplexType || !t.IsConstraint() {
 		return false
 	}
 	if t.URL == "http://hl7.org/fhir/StructureDefinition/Extension" || t.URL == "Extension" {
@@ -93,32 +114,4 @@ func (t *Type) IsExtension() bool {
 		return t.Base.IsExtension()
 	}
 	return false
-}
-
-// HasDerived returns true if the type has any derived types.
-func (t *Type) HasDerived() bool {
-	return len(t.DerivedTypes) > 0
-}
-
-// FieldNames returns a slice containing all the field names that this Type
-// defines.
-func (t *Type) FieldNames() []string {
-	keys := make([]string, 0, len(t.Fields))
-	for key := range t.Fields {
-		keys = append(keys, key)
-	}
-	return keys
-}
-
-// LookupField looks up a field by name in the type definition. If the field
-// does not exist, ok will be false.
-func (t *Type) LookupField(name string) (field *Field, ok bool) {
-	field, ok = t.Fields[name]
-	return
-}
-
-// Field returns the field definition for the given field name. If the field
-// does not exist, this will return nil.
-func (t *Type) Field(name string) *Field {
-	return t.Fields[name]
 }

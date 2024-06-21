@@ -40,7 +40,6 @@ var Run = &cobra.Command{
 		}
 		name, version := cfg.Package.Name, cfg.Package.Version
 		pkg := fhirig.NewPackage(name, version)
-		builder := model.NewModelBuilder(pkg)
 		cachePath, err := cmd.Flags().GetString("fhirig-cache")
 		if err != nil {
 			return err
@@ -62,32 +61,36 @@ var Run = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		fhirCache := model.DefaultFHIRCache()
 		for _, entry := range entries {
 			if strings.HasPrefix(filepath.Base(entry), "StructureDefinition-") {
 				sd, err := raw.ReadStructureDefinition(entry)
 				if err != nil {
 					return err
 				}
-				builder.AddStructureDefinition(pkg, sd)
+				fhirCache.AddStructureDefinition(pkg, filepath.Base(entry), sd)
 			}
 			if strings.HasPrefix(filepath.Base(entry), "CodeSystem-") {
 				cs, err := raw.ReadCodeSystem(entry)
 				if err != nil {
 					return err
 				}
-				builder.AddCodeSystem(pkg, cs)
+				fhirCache.AddCodeSystem(pkg, filepath.Base(entry), cs)
 			}
-			if strings.HasPrefix(filepath.Base(entry), "ValueSet-") {
-				vs, err := raw.ReadValueSet(entry)
-				if err != nil {
-					return err
-				}
-				builder.AddValueSet(pkg, vs)
-			}
+			// if strings.HasPrefix(filepath.Base(entry), "ValueSet-") {
+			// 	vs, err := raw.ReadValueSet(entry)
+			// 	if err != nil {
+			// 		return err
+			// 	}
+			// 	builder.AddValueSet(pkg, vs)
+			// }
+		}
+		model := model.NewModel(fhirCache)
+		if err := model.DefineAllTypes(); err != nil {
+			return err
 		}
 
 		engine := engine.New(cfg, engine.Output(output))
-		model, err := builder.Build()
 		if err != nil {
 			return err
 		}

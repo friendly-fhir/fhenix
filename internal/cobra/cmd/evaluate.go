@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/friendly-fhir/fhenix/internal/fhirig"
 	"github.com/friendly-fhir/fhenix/internal/model"
+	"github.com/friendly-fhir/fhenix/internal/model/raw"
 	"github.com/friendly-fhir/fhenix/internal/template"
 	"github.com/spf13/cobra"
 )
@@ -27,8 +29,11 @@ var Evaluate = &cobra.Command{
 			return err
 		}
 		t := &model.Type{
-			Package:    "hl7.fhir.r4.core",
-			Version:    "4.0.1",
+			Source: &model.TypeSource{
+				Package:             fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1"),
+				File:                "StructureDefinition-string.json",
+				StructureDefinition: &raw.StructureDefinition{},
+			},
 			Kind:       "primitive-type",
 			Name:       "String",
 			Base:       nil,

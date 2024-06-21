@@ -49,7 +49,7 @@ func (e *Engine) buildTypeTransforms(m *model.Model, transformation *config.Tran
 		return nil, err
 	}
 
-	for _, t := range m.Types() {
+	for _, t := range m.Types().All() {
 		can := transformation.Input.If.Evaluate(t)
 		if !can {
 			continue
@@ -118,6 +118,10 @@ func (e *Engine) Run(m *model.Model) error {
 func run[T any](m *model.Model, output string, transforms *transform[T]) error {
 	var errs []error
 	for path, types := range transforms.Inputs {
+		if len(types) != 1 {
+			errs = append(errs, fmt.Errorf("expected 1 type for output %v, got %d", path, len(types)))
+			continue
+		}
 		outpath := filepath.FromSlash(path)
 		if output != "" {
 			outpath = filepath.Join(output, outpath)
@@ -134,7 +138,7 @@ func run[T any](m *model.Model, output string, transforms *transform[T]) error {
 			continue
 		}
 		defer file.Close()
-		if err := transforms.Template.ModelFuncs(m).Execute(file, types); err != nil {
+		if err := transforms.Template.Execute(file, types[0]); err != nil {
 			errs = append(errs, err)
 			continue
 		}

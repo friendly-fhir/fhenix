@@ -3,7 +3,7 @@ package model_test
 import (
 	"testing"
 
-	"github.com/friendly-fhir/fhenix/internal/model/v2"
+	"github.com/friendly-fhir/fhenix/internal/model"
 )
 
 func TestCardinality_IsRequired(t *testing.T) {
