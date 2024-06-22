@@ -22,23 +22,28 @@ var Run = &cobra.Command{
 		if len(args) != 1 {
 			return cmd.Usage()
 		}
+		cfg, err := config.FromFile(args[0])
+		if err != nil {
+			return err
+		}
 		output, err := cmd.Flags().GetString("output")
 		if err != nil {
 			return err
 		}
 		if output == "" {
-			output, err = os.Getwd()
-			if err != nil {
-				return err
+			dist := cfg.Default.Dist
+			if !filepath.IsAbs(dist) {
+				cwd, err := os.Getwd()
+				if err != nil {
+					return err
+				}
+				output = filepath.Clean(filepath.Join(cwd, dist))
+			} else {
+				output = filepath.Clean(dist)
 			}
-			output = filepath.Join(output, "dist")
 		}
 		if rm, err := cmd.Flags().GetBool("rm"); err == nil && rm {
 			os.RemoveAll(output)
-		}
-		cfg, err := config.FromFile(args[0])
-		if err != nil {
-			return err
 		}
 		name, version := cfg.Package.Name, cfg.Package.Version
 		pkg := fhirig.NewPackage(name, version)

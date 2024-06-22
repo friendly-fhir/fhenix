@@ -27,6 +27,7 @@ type Transformation struct {
 // This just helps to reduce the boilerplate when several transformations use
 // the same set of templates.
 type Default struct {
+	Dist      string    `yaml:"dist-dir"`
 	Output    Output    `yaml:"output"`
 	Templates Templates `yaml:"template"`
 }
@@ -238,6 +239,9 @@ func FromFile(path string) (*Config, error) {
 				t.Template[k] = filepath.Join(cfg.BasePath, v)
 			}
 		}
+	}
+	if !filepath.IsAbs(cfg.Default.Dist) {
+		cfg.Default.Dist = filepath.Join(cfg.BasePath, cfg.Default.Dist)
 	}
 	return cfg, nil
 }
