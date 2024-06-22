@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/friendly-fhir/fhenix/internal/template"
@@ -16,10 +17,36 @@ type Version int
 // Transformation outlines a transformation process that takes an input and
 // produces an output.
 type Transformation struct {
-	Version  Version `yaml:"version"`
-	Input    Input   `yaml:"input"`
-	Output   Output  `yaml:"output"`
-	Template string  `yaml:"template"`
+	Version  Version   `yaml:"version"`
+	Input    Input     `yaml:"input"`
+	Output   Output    `yaml:"output"`
+	Template Templates `yaml:"template"`
+}
+
+type Templates map[string]string
+
+func (t *Templates) UnmarshalYAML(node *yaml.Node) error {
+	switch node.Kind {
+	case yaml.MappingNode:
+		*t = make(Templates)
+		for i := 0; i < len(node.Content); i += 2 {
+			key := node.Content[i].Value
+			var tmpl string
+			if err := node.Content[i+1].Decode(&tmpl); err != nil {
+				return err
+			}
+			(*t)[key] = tmpl
+		}
+	case yaml.ScalarNode:
+		var tmpl string
+		if err := node.Decode(&tmpl); err != nil {
+			return err
+		}
+		*t = Templates{"default": tmpl}
+	default:
+		return errors.New("invalid templates")
+	}
+	return nil
 }
 
 type Output struct {
@@ -153,6 +180,7 @@ type Package struct {
 type Config struct {
 	Package         Package          `yaml:"package"`
 	Transformations []Transformation `yaml:"transformations"`
+	BasePath        string           `yaml:"-"`
 }
 
 // FromYAML parses a configuration from a YAML byte slice.
@@ -180,5 +208,17 @@ func FromFile(path string) (*Config, error) {
 		return nil, err
 	}
 	defer file.Close()
-	return FromReader(file)
+	cfg, err := FromReader(file)
+	if err != nil {
+		return nil, err
+	}
+	cfg.BasePath = filepath.Dir(path)
+	for _, t := range cfg.Transformations {
+		for k, v := range t.Template {
+			if !filepath.IsAbs(v) {
+				t.Template[k] = filepath.Join(cfg.BasePath, v)
+			}
+		}
+	}
+	return cfg, nil
 }

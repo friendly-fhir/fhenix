@@ -91,9 +91,6 @@ var Run = &cobra.Command{
 		}
 
 		engine := engine.New(cfg, engine.Output(output))
-		if err != nil {
-			return err
-		}
 		if err := engine.Run(model); err != nil {
 			return err
 		}

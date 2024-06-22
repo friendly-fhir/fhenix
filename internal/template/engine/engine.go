@@ -3,7 +3,6 @@ package engine
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 
@@ -23,29 +22,34 @@ type transform[T any] struct {
 	Inputs   map[string][]*T
 }
 
-func parse(tmpl **template.Template, name string, filename string) error {
-	if filename == "" {
+func parse(tmpl **template.Template, templates config.Templates) error {
+	if len(templates) == 0 {
 		return nil
 	}
-	file, err := os.Open(filename)
+	var err error
+	*tmpl, err = template.New("content").Parse(`{{ template "default" . }}`)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-	content, err := io.ReadAll(file)
-	if err != nil {
-		return err
+
+	for name, filename := range templates {
+		data, err := os.ReadFile(filename)
+		if err != nil {
+			return err
+		}
+
+		if _, err := (*tmpl).New(name).Parse(string(data)); err != nil {
+			return err
+		}
 	}
-	out, err := template.Parse(name, string(content))
-	*tmpl = out
-	return err
+	return nil
 }
 
 func (e *Engine) buildTypeTransforms(m *model.Model, transformation *config.Transformation) (*transform[model.Type], error) {
 	result := &transform[model.Type]{
 		Inputs: map[string][]*model.Type{},
 	}
-	if err := parse(&result.Template, "content", transformation.Template); err != nil {
+	if err := parse(&result.Template, transformation.Template); err != nil {
 		return nil, err
 	}
 
@@ -67,7 +71,7 @@ func (e *Engine) buildCodeSystemTransforms(m *model.Model, transformation *confi
 	result := &transform[model.CodeSystem]{
 		Inputs: map[string][]*model.CodeSystem{},
 	}
-	if err := parse(&result.Template, "content", transformation.Template); err != nil {
+	if err := parse(&result.Template, transformation.Template); err != nil {
 		return nil, err
 	}
 
