@@ -33,7 +33,9 @@ var Run = &cobra.Command{
 			}
 			output = filepath.Join(output, "dist")
 		}
-		os.RemoveAll(output)
+		if rm, err := cmd.Flags().GetBool("rm"); err == nil && rm {
+			os.RemoveAll(output)
+		}
 		cfg, err := config.FromFile(args[0])
 		if err != nil {
 			return err
@@ -103,6 +105,7 @@ func init() {
 	Root.AddCommand(Run)
 	flags := Run.Flags()
 	flags.StringP("output", "o", "", "The output directory to write the generated code to")
+	flags.Bool("rm", false, "Remove all contents from the output directory prior to writing")
 	flags.String("fhirig-cache", "", "The configuration path to download the FHIR IGs to")
 	flags.Bool("force", false, "Force download of FHIR IGs")
 	flags.Duration("timeout", 0, "Timeout for the download")
