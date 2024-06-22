@@ -17,10 +17,18 @@ type Version int
 // Transformation outlines a transformation process that takes an input and
 // produces an output.
 type Transformation struct {
-	Version  Version   `yaml:"version"`
 	Input    Input     `yaml:"input"`
 	Output   Output    `yaml:"output"`
 	Template Templates `yaml:"template"`
+}
+
+// Default is a configuration node that specifies default values to use for
+// output and templates, if not specified in a transformation.
+// This just helps to reduce the boilerplate when several transformations use
+// the same set of templates.
+type Default struct {
+	Output    Output    `yaml:"output"`
+	Templates Templates `yaml:"template"`
 }
 
 type Templates map[string]string
@@ -44,7 +52,7 @@ func (t *Templates) UnmarshalYAML(node *yaml.Node) error {
 		}
 		*t = Templates{"default": tmpl}
 	default:
-		return errors.New("invalid templates")
+		return errors.New("config: invalid 'template' definition, expected mapping or string")
 	}
 	return nil
 }
@@ -178,6 +186,7 @@ type Package struct {
 }
 
 type Config struct {
+	Default         Default          `yaml:"default"`
 	Package         Package          `yaml:"package"`
 	Transformations []Transformation `yaml:"transformations"`
 	BasePath        string           `yaml:"-"`
@@ -188,6 +197,16 @@ func FromYAML(data []byte) (*Config, error) {
 	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
+	}
+	for _, transform := range cfg.Transformations {
+		for key, value := range cfg.Default.Templates {
+			if _, ok := transform.Template[key]; !ok {
+				transform.Template[key] = value
+			}
+		}
+		if transform.Output.tmpl == nil {
+			transform.Output = cfg.Default.Output
+		}
 	}
 	return &cfg, nil
 }
