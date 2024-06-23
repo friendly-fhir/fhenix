@@ -12,49 +12,7 @@ permissions:
 jobs:
   generate-documentation:
     name: Generate Documentation
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-
-      - name: Read metadata
-        id: metadata
-        run: |
-          site_dir=$(yq '.site_dir // "dist"' mkdocs.yaml)
-          echo "site-dir=${site_dir}" >> "${GITHUB_OUTPUT}"
-
-      - name: Install dependencies
-        run: |
-          pip install mkdocs
-          pip install mkdocs-mermaid2-plugin
-          pip install mkdocs-coverage
-
-      - name: Copy README as index
-        run: |
-          cat README.md | sed 's@./docs/@./@g' > "${{ steps.metadata.outputs.site-dir }}/index.md"
-
-      - name: Generate Documentation
-        run: mkdocs build
-
-      # Some of the doc generation steps above create the directories with
-      # 0750 for permissions -- which is triggering warning annotations in the
-      # workflow summaries. Manually converting this to 0755 helps to suppress
-      # this.
-      - name: Fix permissions
-        run: |
-          site_dir="${{ steps.metadata.outputs.site-dir }}"
-          find "./${site_dir}" -type d -exec chmod 0755 {} \;
-          find "./${site_dir}" -type f -name '.lock' -delete
-
-      - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ${{ steps.metadata.outputs.site-dir }}/
+    uses: ./.github/workflows/build-docs.yaml
 
   deploy:
     name: Deploy to GH Pages

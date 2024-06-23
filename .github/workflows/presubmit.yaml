@@ -68,6 +68,10 @@ jobs:
     permissions:
       contents: read
 
+  build-docs:
+    name: Generate Documentation
+    uses: ./.github/workflows/build-docs.yaml
+
   # This check is a no-op that exists so that GitHub has a check to mark as
   # required and successful.
   check-success:
@@ -76,6 +80,7 @@ jobs:
     if: github.event_name == 'pull_request'
     needs:
       - build-and-test
+      - build-docs
       - license-manifest
       - vulnerability-scanning
       - go-lint
