@@ -220,7 +220,15 @@ var funcMap = FuncMap{
 		}
 		return strings.Join(parts, "")
 	},
-
+	"acronym": func(s string) string {
+		parts := strings.Split(strings.ToLower(strcase.ToKebab(s)), "-")
+		for i, part := range parts {
+			if _, ok := acronyms[part]; ok {
+				parts[i] = strings.ToUpper(string(part[0]))
+			}
+		}
+		return strings.Join(parts, "")
+	},
 	"fold": cases.Fold().String,
 
 	"trim":  strings.TrimSpace,
