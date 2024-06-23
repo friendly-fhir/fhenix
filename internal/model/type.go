@@ -1,6 +1,8 @@
 package model
 
 import (
+	"strings"
+
 	"github.com/friendly-fhir/fhenix/internal/fhirig"
 	"github.com/friendly-fhir/fhenix/internal/model/raw"
 )
@@ -67,6 +69,17 @@ func commonBase(t1, t2 *Type) *Type {
 	return commonBase(t1, t2)
 }
 
+func (t *Type) InPackage(pkg string) bool {
+	parts := strings.Split(pkg, "@")
+	if len(parts) == 1 {
+		return t.Package() == pkg
+	}
+	if len(parts) == 2 {
+		return t.Package() == parts[0] && t.Version() == parts[1]
+	}
+	return false
+}
+
 func (t *Type) Package() string {
 	return t.Source.Package.Name()
 }
@@ -97,10 +110,6 @@ func (t *Type) IsPrimitive() bool {
 
 func (t *Type) IsComplex() bool {
 	return t.Kind == TypeKindComplexType
-}
-
-func (t *Type) IsBackbone() bool {
-	return t.Kind == TypeKindBackbone
 }
 
 func (t *Type) IsExtension() bool {
