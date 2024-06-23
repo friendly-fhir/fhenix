@@ -194,6 +194,32 @@ var funcMap = FuncMap{
 	"snakecase":  strcase.ToSnake,
 	"kebabcase":  strcase.ToKebab,
 	"shoutcase":  strcase.ToScreamingSnake,
+	"pascalinitialcase": func(s string) string {
+		parts := strings.Split(strings.ToLower(strcase.ToKebab(s)), "-")
+		for i, part := range parts {
+			if _, ok := acronyms[part]; !ok {
+				parts[i] = strcase.ToCamel(part)
+			} else {
+				parts[i] = strings.ToUpper(part)
+			}
+		}
+		return strings.Join(parts, "")
+	},
+	"camelinitialcase": func(s string) string {
+		parts := strings.Split(strings.ToLower(strcase.ToKebab(s)), "-")
+		for i, part := range parts {
+			if i == 0 {
+				parts[i] = strings.ToLower(part)
+				continue
+			}
+			if _, ok := acronyms[part]; !ok {
+				parts[i] = strcase.ToCamel(part)
+			} else {
+				parts[i] = strings.ToUpper(part)
+			}
+		}
+		return strings.Join(parts, "")
+	},
 
 	"fold": cases.Fold().String,
 
@@ -297,15 +323,16 @@ var funcMap = FuncMap{
 	"char":       func(n int, text string) string { return string(text[n]) },
 }
 
-func init() {
-	strcase.ConfigureAcronym("ID", "id")
-	strcase.ConfigureAcronym("URL", "url")
-	strcase.ConfigureAcronym("URI", "uri")
-	strcase.ConfigureAcronym("UUID", "uuid")
-	strcase.ConfigureAcronym("OID", "oid")
-	strcase.ConfigureAcronym("JSON", "json")
-	strcase.ConfigureAcronym("XML", "xml")
-	strcase.ConfigureAcronym("HTML", "html")
-	strcase.ConfigureAcronym("HTTP", "http")
-	strcase.ConfigureAcronym("HTTPS", "https")
+var acronyms = map[string]struct{}{
+	"id":    struct{}{},
+	"url":   struct{}{},
+	"uri":   struct{}{},
+	"uuid":  struct{}{},
+	"oid":   struct{}{},
+	"json":  struct{}{},
+	"xml":   struct{}{},
+	"html":  struct{}{},
+	"http":  struct{}{},
+	"https": struct{}{},
+	"xhtml": struct{}{},
 }
