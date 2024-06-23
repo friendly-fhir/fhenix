@@ -49,6 +49,10 @@ jobs:
           find "./${site_dir}" -type d -exec chmod 0755 {} \;
           find "./${site_dir}" -type f -name '.lock' -delete
 
+      - name: Copy Schema
+        run: |
+          cp ./jsonschema/*.json "${{ steps.metadata.outputs.site-dir }}/"
+
       - name: Upload Pages Artifact
         id: upload
         uses: actions/upload-pages-artifact@v3

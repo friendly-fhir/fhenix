@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "integer",
+      "description": "The version of the schema. This is used to ensure that the schema is compatible with the version of the tool that is using it.",
+      "const": 0
+    },
+    "package": {
+      "type": "object",
+      "description": "The package that is being used to drive this generation. Packages are references to Simplifier.net packages.",
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "The version of the package that is being used"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the package, as it appears in Simplifier.net"
+        }
+      },
+      "required": ["version", "name"]
+    },
+    "default": {
+      "type": "object",
+      "description": "Provides defaults that are shared for all transformations that don't provide their own",
+      "properties": {
+        "output": {
+          "description": "A template string that evaluates to the default output-path for all transformations. This value will only be used for transformations that don't define an 'output' field.",
+          "type": "string"
+        },
+        "template": {
+          "description": "The templates to provide for all transformations. If a string, it is a file path and treated as the 'default' template. If an object, each key names a different template, and each value is a string filepath to a new template.",
+          "oneOf": [
+            {
+              "type": "string",
+              "description": "A file path to a template object.",
+              "format": "file-path"
+            },
+            {
+              "type": "object",
+              "description": "Each key names a different template, and each value is a string filepath to a new template object.",
+              "properties": {
+                "default": {
+                  "description": "The default template to provide for all transformations if one is not specified.",
+                  "type": "string",
+                  "format": "file-path"
+                }
+              },
+              "additionalProperties": true
+            }
+          ]
+        }
+      }
+    },
+    "transformations": {
+      "type": "array",
+      "description": "The transformations that are being applied to the package. Each transformation is a set of rules that define how to transform a set of definitions into the output format.",
+      "items": {
+        "type": "object",
+        "description": "A transformation that is being applied to the package.",
+        "properties": {
+          "input": {
+            "type": "object",
+            "description": "Identifies a filter for input definitions to be provided to the specified templates.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "The type of definition to include in the input.",
+                "enum": ["StructureDefinition", "CodeSystem", "ValueSet"],
+                "default": "StructureDefinition"
+              },
+              "if": {
+                "type": "string",
+                "description": "An arbitrary filter that uses template filtering syntax."
+              }
+            },
+            "required": ["type"]
+          },
+          "output": {
+            "type": "string",
+            "description": "A template string that evaluates to the output-path for the transformation. This value will override the default output-path if it is provided."
+          },
+          "template": {
+            "description": "The templates to provide for this transformation. If a string, it is a file path and treated as the 'default' template. If an object, each key names a different template, and each value is a string filepath to a new template.",
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "A file path to a template object.",
+                "format": "file-path"
+              },
+              {
+                "type": "object",
+                "description": "Each key names a different template, and each value is a string filepath to a new template object.",
+                "properties": {
+                  "default": {
+                    "description": "The default template to provide for all transformations if one is not specified.",
+                    "type": "string",
+                    "format": "file-path"
+                  }
+                },
+                "additionalProperties": true
+              }
+            ]
+          }
+        },
+        "required": ["input"]
+      }
+    }
+  },
+  "required": ["package", "transformations"]
+}

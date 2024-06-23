@@ -29,3 +29,6 @@ plugins:
 
 nav:
   - 🏠 Home: index.md
+  - 📖 User Manual:
+    - Getting Started: user-manual/getting-started.md
+    - Configuration: user-manual/config.md
