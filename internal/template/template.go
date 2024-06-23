@@ -223,9 +223,7 @@ var funcMap = FuncMap{
 	"acronym": func(s string) string {
 		parts := strings.Split(strings.ToLower(strcase.ToKebab(s)), "-")
 		for i, part := range parts {
-			if _, ok := acronyms[part]; ok {
-				parts[i] = strings.ToUpper(string(part[0]))
-			}
+			parts[i] = strings.ToUpper(string(part[0]))
 		}
 		return strings.Join(parts, "")
 	},
@@ -332,15 +330,15 @@ var funcMap = FuncMap{
 }
 
 var acronyms = map[string]struct{}{
-	"id":    struct{}{},
-	"url":   struct{}{},
-	"uri":   struct{}{},
-	"uuid":  struct{}{},
-	"oid":   struct{}{},
-	"json":  struct{}{},
-	"xml":   struct{}{},
-	"html":  struct{}{},
-	"http":  struct{}{},
-	"https": struct{}{},
-	"xhtml": struct{}{},
+	"id":    {},
+	"url":   {},
+	"uri":   {},
+	"uuid":  {},
+	"oid":   {},
+	"json":  {},
+	"xml":   {},
+	"html":  {},
+	"http":  {},
+	"https": {},
+	"xhtml": {},
 }
