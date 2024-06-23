@@ -51,7 +51,7 @@ jobs:
 
       - name: Copy Schema
         run: |
-          cp ./jsonschema/*.json "${{ steps.metadata.outputs.site-dir }}/"
+          cp -r ./jsonschema "${{ steps.metadata.outputs.site-dir }}/jsonschema"
 
       - name: Upload Pages Artifact
         id: upload

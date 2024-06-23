@@ -26,7 +26,7 @@ validation comment:
 
 [JSON Schema]: https://json-schema.org/
 [fhenix repository]: https://github.com/friendly-fhir/fhenix
-[jsonschema/fhenix-v0.schema.json]: https://github.com/friendly-fhir/fhenix/blob/master/jsonschema/fhenix-v0.schema.json
+[jsonschema/fhenix-v0.schema.json]: https://raw.githubusercontent.com/friendly-fhir/fhenix/master/jsonschema/fhenix-v0.schema.json/fhenix-v0.schema.json
 
 ## Example
 
