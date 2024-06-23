@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://json.schemastore.org/mkdocs-1.0.json
+site_name: Fhenix
+copyright: Friendly FHIR Contributors 2024
+repo_name: fhenix
+repo_url: https://github.com/friendly-fhir/fhenix
+remote_branch: origin/master
+remote_name: origin
+site_author: Matthew Rodusek
+site_description: The Friendly FHIR organization
+site_url: https://friendly-fhir.github.io/fhenix
+site_dir: dist
+docs_dir: docs
+
+theme:
+  name: readthedocs
+  highlightjs: true
+  hljs_languages:
+    - yaml
+    - go
+    - protobuf
+    - markdown
+    - shell
+  features:
+    - search.suggest
+    - search.share
+plugins:
+  - search
+  - mermaid2
+
+nav:
+  - 🏠 Home: index.md
