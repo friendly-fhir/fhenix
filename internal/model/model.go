@@ -154,7 +154,7 @@ func (m *Model) scalarFieldFromType(t *Type, field *Field, rawType *raw.Type) er
 	}
 
 	// When we find an abstract type, it means we are defining a new type in-place.
-	if base.IsAbstract {
+	if base.IsAbstract && base.Kind != TypeKindResource {
 		ty := &Type{
 			Source:      t.Source,
 			Name:        field.Path,
@@ -165,6 +165,8 @@ func (m *Model) scalarFieldFromType(t *Type, field *Field, rawType *raw.Type) er
 			Base:        base,
 		}
 		t.SubTypes = append(t.SubTypes, ty)
+		field.Type = ty
+		return nil
 	}
 	if ty, err := m.Type(rawType.Code); err == nil {
 		field.Type = ty
