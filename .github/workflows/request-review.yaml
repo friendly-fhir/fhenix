@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Request Review
+
+on:
+  pull_request:
+
+permissions: write-all
+
+jobs:
+  request-review:
+    name: Request Review
+    runs-on: ubuntu-latest
+    steps:
+      - name: Request Review
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            github.rest.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              team_reviewers: ['fhir-marshals']
+            })
