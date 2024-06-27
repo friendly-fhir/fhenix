@@ -226,6 +226,7 @@ func (r *PackageCache) fetch(ctx context.Context, pkg *Package, force bool) erro
 		r.listener().OnFetchEnd(pkg, err)
 		return err
 	}
+	defer file.Close()
 	success := false
 	// If fetching didn't succeed, remove anything that was downloaded.
 	defer func() {
