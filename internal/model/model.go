@@ -199,9 +199,9 @@ func (m *Model) typeFromElements(t *Type, elems []*raw.ElementDefinition) error 
 				return err
 			}
 		}
-
+		name := m.fieldname(elem.Path)
 		field := &Field{
-			Name:            m.fieldname(elem.Path),
+			Name:            name,
 			Path:            elem.Path,
 			Short:           elem.Short,
 			Comment:         elem.Comment,
@@ -211,6 +211,11 @@ func (m *Model) typeFromElements(t *Type, elems []*raw.ElementDefinition) error 
 		}
 		if err := m.fieldFromElement(t, field, elem); err != nil {
 			return err
+		}
+		if t.Package() == "hl7.fhir.r4.core" && elem.Path == "unsignedInt.value" || elem.Path == "positiveInt.value" {
+			field.Builtin = &Builtin{
+				Name: m.fieldpath(elem.Path),
+			}
 		}
 		m.addField(t, field)
 	}
