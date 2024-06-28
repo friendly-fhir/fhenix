@@ -44,7 +44,7 @@ package:
   version: "4.0.1"
 
 default:
-  template:
+  partials:
     field-name: 'templates/field-name.go.tmpl'
     type-name:  'templates/type-name.go.tmpl'
     type-def:   'templates/type-def.go.tmpl'
@@ -53,7 +53,7 @@ transformations:
   - input:
       type: StructureDefinition
     output: 'r4/core/{{ .Name | snakecase }}.go'
-    template: 'templates/structure-def.go.tmpl'
+    partials: 'templates/structure-def.go.tmpl'
   - input:
       type: CodeSystem
     output: 'r4/core/codes/{{ .Name | snakecase }}.go'

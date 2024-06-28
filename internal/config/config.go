@@ -17,9 +17,9 @@ type Version int
 // Transformation outlines a transformation process that takes an input and
 // produces an output.
 type Transformation struct {
-	Input    Input     `yaml:"input"`
-	Output   Output    `yaml:"output"`
-	Template Templates `yaml:"template"`
+	Input    Input    `yaml:"input"`
+	Output   Output   `yaml:"output"`
+	Partials Partials `yaml:"partials"`
 }
 
 // Default is a configuration node that specifies default values to use for
@@ -27,17 +27,17 @@ type Transformation struct {
 // This just helps to reduce the boilerplate when several transformations use
 // the same set of templates.
 type Default struct {
-	Dist      string    `yaml:"dist-dir"`
-	Output    Output    `yaml:"output"`
-	Templates Templates `yaml:"template"`
+	Dist     string   `yaml:"dist-dir"`
+	Output   Output   `yaml:"output"`
+	Partials Partials `yaml:"partials"`
 }
 
-type Templates map[string]string
+type Partials map[string]string
 
-func (t *Templates) UnmarshalYAML(node *yaml.Node) error {
+func (t *Partials) UnmarshalYAML(node *yaml.Node) error {
 	switch node.Kind {
 	case yaml.MappingNode:
-		*t = make(Templates)
+		*t = make(Partials)
 		for i := 0; i < len(node.Content); i += 2 {
 			key := node.Content[i].Value
 			var tmpl string
@@ -51,7 +51,7 @@ func (t *Templates) UnmarshalYAML(node *yaml.Node) error {
 		if err := node.Decode(&tmpl); err != nil {
 			return err
 		}
-		*t = Templates{"default": tmpl}
+		*t = Partials{"default": tmpl}
 	default:
 		return errors.New("config: invalid 'template' definition, expected mapping or string")
 	}
@@ -200,9 +200,9 @@ func FromYAML(data []byte) (*Config, error) {
 		return nil, err
 	}
 	for _, transform := range cfg.Transformations {
-		for key, value := range cfg.Default.Templates {
-			if _, ok := transform.Template[key]; !ok {
-				transform.Template[key] = value
+		for key, value := range cfg.Default.Partials {
+			if _, ok := transform.Partials[key]; !ok {
+				transform.Partials[key] = value
 			}
 		}
 		if transform.Output.tmpl == nil {
@@ -234,9 +234,9 @@ func FromFile(path string) (*Config, error) {
 	}
 	cfg.BasePath = filepath.Dir(path)
 	for _, t := range cfg.Transformations {
-		for k, v := range t.Template {
+		for k, v := range t.Partials {
 			if !filepath.IsAbs(v) {
-				t.Template[k] = filepath.Join(cfg.BasePath, v)
+				t.Partials[k] = filepath.Join(cfg.BasePath, v)
 			}
 		}
 	}

@@ -30,7 +30,7 @@
           "description": "A template string that evaluates to the default output-path for all transformations. This value will only be used for transformations that don't define an 'output' field.",
           "type": "string"
         },
-        "template": {
+        "partials": {
           "description": "The templates to provide for all transformations. If a string, it is a file path and treated as the 'default' template. If an object, each key names a different template, and each value is a string filepath to a new template.",
           "oneOf": [
             {
@@ -82,7 +82,7 @@
             "type": "string",
             "description": "A template string that evaluates to the output-path for the transformation. This value will override the default output-path if it is provided."
           },
-          "template": {
+          "partials": {
             "description": "The templates to provide for this transformation. If a string, it is a file path and treated as the 'default' template. If an object, each key names a different template, and each value is a string filepath to a new template.",
             "oneOf": [
               {

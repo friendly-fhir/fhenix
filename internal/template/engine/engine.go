@@ -22,7 +22,7 @@ type transform[T any] struct {
 	Inputs   map[string][]*T
 }
 
-func parse(tmpl **template.Template, templates config.Templates) error {
+func parse(tmpl **template.Template, templates config.Partials) error {
 	if len(templates) == 0 {
 		return nil
 	}
@@ -49,7 +49,7 @@ func (e *Engine) buildTypeTransforms(m *model.Model, transformation *config.Tran
 	result := &transform[model.Type]{
 		Inputs: map[string][]*model.Type{},
 	}
-	if err := parse(&result.Template, transformation.Template); err != nil {
+	if err := parse(&result.Template, transformation.Partials); err != nil {
 		return nil, err
 	}
 
@@ -71,7 +71,7 @@ func (e *Engine) buildCodeSystemTransforms(m *model.Model, transformation *confi
 	result := &transform[model.CodeSystem]{
 		Inputs: map[string][]*model.CodeSystem{},
 	}
-	if err := parse(&result.Template, transformation.Template); err != nil {
+	if err := parse(&result.Template, transformation.Partials); err != nil {
 		return nil, err
 	}
 

@@ -12,24 +12,24 @@ transformations:
       type: StructureDefinition
       if: '{{ eq .Kind "primitive-type" }}'
     output: '{{ .Package | replace "." "/" | cutprefix "hl7/" }}/{{ .Name | snakecase }}.go'
-    template: 'templates/r4/primitive.go.tmpl'
+    partials: 'templates/r4/primitive.go.tmpl'
   - input:
       type: StructureDefinition
       if: '{{ and (eq .Kind "complex-type") .IsSpecialization }}'
     output: '{{ .Package | replace "." "/" | cutprefix "hl7/" }}/{{ .Name | snakecase }}.go'
-    template: 'templates/r4/complex.go.tmpl'
+    partials: 'templates/r4/complex.go.tmpl'
   - input:
       type: StructureDefinition
       if: '{{ eq .Name "Questionnaire" }}'
     output: '{{ .Package | replace "." "/" | cutprefix "hl7/" }}/resources/{{ .Name | lowercase }}/{{ .Name | snakecase }}.go'
-    template: 'templates/r4/resource.go.tmpl'
+    partials: 'templates/r4/resource.go.tmpl'
   - input:
       type: StructureDefinition
       if: '{{ .IsAbstract }}'
     output: '{{ .Package | replace "." "/" | cutprefix "hl7/" }}/{{ .Name | snakecase }}.go'
-    template: 'templates/r4/base-profile.go.tmpl'
+    partials: 'templates/r4/base-profile.go.tmpl'
   - input:
       type: StructureDefinition
       if: '{{ or .IsAbstract .HasDerived }}'
     output: '{{ .Package | replace "." "/" | cutprefix "hl7/" }}/internal/profileimpl/{{ .Name | snakecase }}.go'
-    template: 'templates/r4/profileimpl.go.tmpl'
+    partials: 'templates/r4/profileimpl.go.tmpl'
