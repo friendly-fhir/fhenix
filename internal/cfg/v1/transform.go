@@ -8,7 +8,7 @@ import (
 	"text/template"
 
 	"github.com/friendly-fhir/fhenix/internal/cfg"
-	templatefuncs "github.com/friendly-fhir/fhenix/internal/template"
+	"github.com/friendly-fhir/fhenix/internal/templatefuncs"
 
 	"gopkg.in/yaml.v3"
 )
