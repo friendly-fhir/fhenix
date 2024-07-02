@@ -3,8 +3,8 @@ package cfg_test
 import (
 	"testing"
 
-	rootcfg "github.com/friendly-fhir/fhenix/internal/cfg"
-	"github.com/friendly-fhir/fhenix/internal/cfg/v1"
+	rootcfg "github.com/friendly-fhir/fhenix/config/internal/cfg"
+	"github.com/friendly-fhir/fhenix/config/internal/cfg/v1"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"gopkg.in/yaml.v3"

@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/friendly-fhir/fhenix/internal/cfg"
+	"github.com/friendly-fhir/fhenix/config/internal/cfg"
 	"gopkg.in/yaml.v3"
 )
 

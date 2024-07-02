@@ -3,11 +3,16 @@ package cfg
 import (
 	"fmt"
 
-	"github.com/friendly-fhir/fhenix/internal/cfg"
+	"github.com/friendly-fhir/fhenix/config/internal/cfg"
 	"gopkg.in/yaml.v3"
 )
 
 type Mode string
+
+const (
+	ModeText Mode = "text"
+	ModeHTML Mode = "html"
+)
 
 // UnmarshalYAML unmarshals a YAML node into a Mode.
 func (m *Mode) UnmarshalYAML(node *yaml.Node) error {
