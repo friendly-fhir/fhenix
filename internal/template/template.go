@@ -37,7 +37,7 @@ type Template struct {
 
 // New allocates a new, undefined template with the given name.
 func New(name string) *Template {
-	return &Template{template.New(name).Funcs(funcMap)}
+	return &Template{template.New(name).Funcs(DefaultFuncs)}
 }
 
 // Parse parses a string into a new template with the given name.
@@ -53,7 +53,7 @@ func MustParse(name, text string) *Template {
 
 func (t *Template) UnmarshalYAML(node *yaml.Node) error {
 	if t.Template == nil {
-		t.Template = template.New("").Funcs(funcMap)
+		t.Template = template.New("").Funcs(DefaultFuncs)
 	}
 
 	var text string
@@ -185,7 +185,7 @@ func Must(t *Template, err error) *Template {
 	return &Template{template.Must(t.Template, err)}
 }
 
-var funcMap = FuncMap{
+var DefaultFuncs = FuncMap{
 	"uppercase":  cases.Upper(language.English).String,
 	"lowercase":  cases.Lower(language.English).String,
 	"titlecase":  cases.Title(language.English).String,
