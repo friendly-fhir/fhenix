@@ -1,0 +1,19 @@
+version: 1
+
+output-dir: ".."
+
+default:
+  funcs:
+    receiver: templates/funcs/receiver.tmpl
+  templates:
+    header: templates/header.tmpl
+    footer: templates/footer.tmpl
+
+transforms:
+  - include:
+    - name: ".*"
+      type: StructureDefinition
+
+    templates:
+      type: templates/type.tmpl
+      custom: templates/custom.tmpl

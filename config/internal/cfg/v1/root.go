@@ -2,6 +2,10 @@ package cfg
 
 // Root is the root configuration node of the YAML file.
 type Root struct {
+	// Version is the schema version of the configuration file.
+	// This will always be '1'
+	Version int `yaml:"version"`
+
 	// Mode is the mode type of template output that will be used for the
 	// generated output. May be one of 'text' or 'html'.
 	Mode Mode `yaml:"mode"`
@@ -26,5 +30,5 @@ type Root struct {
 	Default Transform `yaml:"default"`
 
 	// Transforms is a list of transformations to apply to the input data.
-	Transforms []Transform `yaml:"transforms"`
+	Transforms []*Transform `yaml:"transforms"`
 }
