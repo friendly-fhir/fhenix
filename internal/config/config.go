@@ -200,6 +200,9 @@ func FromYAML(data []byte) (*Config, error) {
 		return nil, err
 	}
 	for _, transform := range cfg.Transformations {
+		if transform.Partials == nil {
+			transform.Partials = make(Partials)
+		}
 		for key, value := range cfg.Default.Partials {
 			if _, ok := transform.Partials[key]; !ok {
 				transform.Partials[key] = value
