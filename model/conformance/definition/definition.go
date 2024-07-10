@@ -11,6 +11,7 @@ import (
 
 	fhir "github.com/friendly-fhir/go-fhir/r4/core"
 	"github.com/friendly-fhir/go-fhir/r4/core/resources/codesystem"
+	"github.com/friendly-fhir/go-fhir/r4/core/resources/conceptmap"
 	"github.com/friendly-fhir/go-fhir/r4/core/resources/structuredefinition"
 	"github.com/friendly-fhir/go-fhir/r4/core/resources/valueset"
 )
@@ -18,6 +19,7 @@ import (
 type StructureDefinition = structuredefinition.StructureDefinition
 type ValueSets = valueset.ValueSet
 type CodeSystem = codesystem.CodeSystem
+type ConceptMap = conceptmap.ConceptMap
 
 // Canonical is an interface that represents a FHIR definition that has a
 // canonical URL.
@@ -29,6 +31,7 @@ var (
 	_ Canonical = (*StructureDefinition)(nil)
 	_ Canonical = (*ValueSets)(nil)
 	_ Canonical = (*CodeSystem)(nil)
+	_ Canonical = (*ConceptMap)(nil)
 )
 
 // FromFile reads a canonical definition from a file path.
@@ -66,6 +69,8 @@ func FromJSON(data []byte) (Canonical, error) {
 		result = &ValueSets{}
 	case "CodeSystem":
 		result = &CodeSystem{}
+	case "ConceptMap":
+		result = &ConceptMap{}
 	default:
 		return nil, fmt.Errorf("unknown resource type %q", resourceType.ResourceType)
 	}

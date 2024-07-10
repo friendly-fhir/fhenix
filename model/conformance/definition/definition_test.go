@@ -51,6 +51,10 @@ func TestReadFile(t *testing.T) {
 			path: "testdata/code-system.json",
 			want: mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json"),
 		}, {
+			name: "concept map",
+			path: "testdata/concept-map.json",
+			want: mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json"),
+		}, {
 			name:    "invalid path",
 			path:    "testdata/invalid.json",
 			wantErr: fs.ErrNotExist,

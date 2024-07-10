@@ -28,6 +28,7 @@ type Module struct {
 	structureDefinitions []*definition.StructureDefinition
 	valueSets            []*definition.ValueSets
 	codeSystems          []*definition.CodeSystem
+	conceptMaps          []*definition.ConceptMap
 
 	// source maps the canonical URL of the definition to the Source definition.
 	source map[string]*source
@@ -118,6 +119,13 @@ func (m *Module) CodeSystems() []*definition.CodeSystem {
 	return result
 }
 
+// ConceptMaps returns all the concept maps in the conformance module.
+func (m *Module) ConceptMaps() []*definition.ConceptMap {
+	result := append([]*definition.ConceptMap(nil), m.conceptMaps...)
+	slices.SortFunc(result, sortURL)
+	return result
+}
+
 // All returns all the canonical definitions in the conformance module, sorted
 // by URL.
 func (m *Module) All() []definition.Canonical {
@@ -170,6 +178,18 @@ func (m *Module) FilterCodeSystems(pkg *fhirig.Package) []*definition.CodeSystem
 	return result
 }
 
+// FilterConceptMaps returns the concept maps that are from the given package.
+func (m *Module) FilterConceptMaps(pkg *fhirig.Package) []*definition.ConceptMap {
+	var result []*definition.ConceptMap
+	for _, def := range m.conceptMaps {
+		if src := m.SourceOf(def); src != nil && src.Package.String() == pkg.String() {
+			result = append(result, def)
+		}
+	}
+	slices.SortFunc(result, sortURL)
+	return result
+}
+
 func (m *Module) FilterAll(pkg *fhirig.Package) []definition.Canonical {
 	var result []definition.Canonical
 	for _, src := range m.source {
@@ -194,6 +214,8 @@ func (m *Module) AddDefinition(canonical definition.Canonical, src *Source) {
 		m.valueSets = append(m.valueSets, def)
 	case *definition.CodeSystem:
 		m.codeSystems = append(m.codeSystems, def)
+	case *definition.ConceptMap:
+		m.conceptMaps = append(m.conceptMaps, def)
 	}
 }
 
@@ -262,6 +284,16 @@ func (m *Module) LookupCodeSystem(url string) (*definition.CodeSystem, bool) {
 	return cs, ok
 }
 
+// LookupConceptMap returns the concept map for the given URL.
+func (m *Module) LookupConceptMap(url string) (*definition.ConceptMap, bool) {
+	src, ok := m.lookup(url)
+	if !ok {
+		return nil, false
+	}
+	cm, ok := src.Canonical.(*definition.ConceptMap)
+	return cm, ok
+}
+
 func (m *Module) lookup(url string) (*source, bool) {
 	src, ok := m.source[url]
 	if !ok {
@@ -272,6 +304,9 @@ func (m *Module) lookup(url string) (*source, bool) {
 	}
 	if !ok {
 		src, ok = m.source[fmt.Sprintf("%s/ValueSet/%s", m.base, url)]
+	}
+	if !ok {
+		src, ok = m.source[fmt.Sprintf("%s/ConceptMap/%s", m.base, url)]
 	}
 	if !ok {
 		src, ok = m.source[fmt.Sprintf("%s/%s", m.base, url)]

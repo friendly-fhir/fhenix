@@ -54,6 +54,10 @@ func TestModuleParseFile(t *testing.T) {
 			path: "testdata/value-set.json",
 			url:  mustReadJSON[definition.ValueSets](t, "testdata/value-set.json").GetURL().GetValue(),
 		}, {
+			name: "concept map",
+			path: "testdata/concept-map.json",
+			url:  mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json").GetURL().GetValue(),
+		}, {
 			name:    "invalid path",
 			path:    "testdata/invalid.json",
 			wantErr: fs.ErrNotExist,
@@ -84,12 +88,14 @@ func TestModuleLookupCanonical(t *testing.T) {
 	sd := mustReadJSON[definition.StructureDefinition](t, "testdata/structure-definition.json")
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
+	cm := mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json")
 
 	module := conformance.DefaultModule()
 	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
 	module.AddDefinition(sd, &conformance.Source{Package: pkg})
 	module.AddDefinition(cs, &conformance.Source{Package: pkg})
 	module.AddDefinition(vs, &conformance.Source{Package: pkg})
+	module.AddDefinition(cm, &conformance.Source{Package: pkg})
 
 	testCases := []struct {
 		name   string
@@ -128,6 +134,16 @@ func TestModuleLookupCanonical(t *testing.T) {
 			want:   vs,
 			wantOK: true,
 		}, {
+			name:   "concept map",
+			url:    cm.GetURL().GetValue(),
+			want:   cm,
+			wantOK: true,
+		}, {
+			name:   "concept map base relative",
+			url:    filepath.Base(cm.GetURL().GetValue()),
+			want:   cm,
+			wantOK: true,
+		}, {
 			name:   "unknown",
 			url:    "http://example.com/unknown",
 			want:   nil,
@@ -153,14 +169,17 @@ func TestModuleLookupSource(t *testing.T) {
 	sd := mustReadJSON[definition.StructureDefinition](t, "testdata/structure-definition.json")
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
+	cm := mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json")
 	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
+	cmSource := &conformance.Source{Package: pkg}
 	module := conformance.DefaultModule()
 	module.AddDefinition(sd, sdSource)
 	module.AddDefinition(cs, csSource)
 	module.AddDefinition(vs, vsSource)
+	module.AddDefinition(cm, cmSource)
 
 	testCases := []struct {
 		name   string
@@ -199,6 +218,16 @@ func TestModuleLookupSource(t *testing.T) {
 			want:   vsSource,
 			wantOK: true,
 		}, {
+			name:   "concept map",
+			url:    cm.GetURL().GetValue(),
+			want:   cmSource,
+			wantOK: true,
+		}, {
+			name:   "concept map base relative",
+			url:    filepath.Base(cm.GetURL().GetValue()),
+			want:   cmSource,
+			wantOK: true,
+		}, {
 			name:   "unknown",
 			url:    "http://example.com/unknown",
 			want:   nil,
@@ -224,12 +253,14 @@ func TestModuleCanonical(t *testing.T) {
 	sd := mustReadJSON[definition.StructureDefinition](t, "testdata/structure-definition.json")
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
+	cm := mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json")
 
 	module := conformance.DefaultModule()
 	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
 	module.AddDefinition(sd, &conformance.Source{Package: pkg})
 	module.AddDefinition(cs, &conformance.Source{Package: pkg})
 	module.AddDefinition(vs, &conformance.Source{Package: pkg})
+	module.AddDefinition(cm, &conformance.Source{Package: pkg})
 
 	testCases := []struct {
 		name string
@@ -248,6 +279,10 @@ func TestModuleCanonical(t *testing.T) {
 			name: "value set",
 			url:  vs.GetURL().GetValue(),
 			want: vs,
+		}, {
+			name: "concept map",
+			url:  cm.GetURL().GetValue(),
+			want: cm,
 		}, {
 			name: "unknown",
 			url:  "http://example.com/unknown",
@@ -270,14 +305,17 @@ func TestModuleSource(t *testing.T) {
 	sd := mustReadJSON[definition.StructureDefinition](t, "testdata/structure-definition.json")
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
+	cm := mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json")
 	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
+	cmSource := &conformance.Source{Package: pkg}
 	module := conformance.DefaultModule()
 	module.AddDefinition(sd, sdSource)
 	module.AddDefinition(cs, csSource)
 	module.AddDefinition(vs, vsSource)
+	module.AddDefinition(cm, cmSource)
 
 	testCases := []struct {
 		name string
@@ -296,6 +334,10 @@ func TestModuleSource(t *testing.T) {
 			name: "value set",
 			url:  vs.GetURL().GetValue(),
 			want: vsSource,
+		}, {
+			name: "concept map",
+			url:  cm.GetURL().GetValue(),
+			want: cmSource,
 		}, {
 			name: "unknown",
 			url:  "http://example.com/unknown",
@@ -318,14 +360,17 @@ func TestModuleSourceOf(t *testing.T) {
 	sd := mustReadJSON[definition.StructureDefinition](t, "testdata/structure-definition.json")
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
+	cm := mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json")
 	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
+	cmSource := &conformance.Source{Package: pkg}
 	module := conformance.DefaultModule()
 	module.AddDefinition(sd, sdSource)
 	module.AddDefinition(cs, csSource)
 	module.AddDefinition(vs, vsSource)
+	module.AddDefinition(cm, cmSource)
 
 	testCases := []struct {
 		name      string
@@ -344,6 +389,10 @@ func TestModuleSourceOf(t *testing.T) {
 			name:      "value set",
 			canonical: vs,
 			want:      vsSource,
+		}, {
+			name:      "concept map",
+			canonical: cm,
+			want:      cmSource,
 		},
 	}
 
@@ -421,20 +470,47 @@ func TestModuleCodeSystems(t *testing.T) {
 	}
 }
 
-func TestModuleAll(t *testing.T) {
+func TestModuleConceptMaps(t *testing.T) {
 	sd := mustReadJSON[definition.StructureDefinition](t, "testdata/structure-definition.json")
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
+	cm := mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json")
 	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
+	cmSource := &conformance.Source{Package: pkg}
 	module := conformance.DefaultModule()
 	module.AddDefinition(sd, sdSource)
 	module.AddDefinition(cs, csSource)
 	module.AddDefinition(vs, vsSource)
+	module.AddDefinition(cm, cmSource)
 
-	want := []definition.Canonical{cs, sd, vs}
+	want := []*definition.ConceptMap{cm}
+	got := module.ConceptMaps()
+
+	if !cmp.Equal(got, want) {
+		t.Errorf("Module.ConceptMaps() = %v, want %v", got, want)
+	}
+}
+
+func TestModuleAll(t *testing.T) {
+	sd := mustReadJSON[definition.StructureDefinition](t, "testdata/structure-definition.json")
+	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
+	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
+	cm := mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json")
+	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	sdSource := &conformance.Source{Package: pkg}
+	csSource := &conformance.Source{Package: pkg}
+	vsSource := &conformance.Source{Package: pkg}
+	cmSource := &conformance.Source{Package: pkg}
+	module := conformance.DefaultModule()
+	module.AddDefinition(sd, sdSource)
+	module.AddDefinition(cs, csSource)
+	module.AddDefinition(vs, vsSource)
+	module.AddDefinition(cm, cmSource)
+
+	want := []definition.Canonical{cs, sd, vs, cm}
 	got := module.All()
 
 	if !cmp.Equal(got, want, cmpopts.SortSlices(sortCanonical)) {
@@ -566,18 +642,64 @@ func TestModuleFilterCodeSystems(t *testing.T) {
 	}
 }
 
-func TestModuleFilterAll(t *testing.T) {
+func TestModuleFilterConceptMaps(t *testing.T) {
 	sd := mustReadJSON[definition.StructureDefinition](t, "testdata/structure-definition.json")
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
+	cm := mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json")
 	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
+	cmSource := &conformance.Source{Package: pkg}
 	module := conformance.DefaultModule()
 	module.AddDefinition(sd, sdSource)
 	module.AddDefinition(cs, csSource)
 	module.AddDefinition(vs, vsSource)
+	module.AddDefinition(cm, cmSource)
+
+	testCases := []struct {
+		name string
+		pkg  *fhirig.Package
+		want []*definition.ConceptMap
+	}{
+		{
+			name: "concept map is from package",
+			pkg:  pkg,
+			want: []*definition.ConceptMap{cm},
+		}, {
+			name: "concept map is not from package",
+			pkg:  fhirig.NewPackage("hl7.fhir.r4.core", "4.0.2"),
+			want: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := module.FilterConceptMaps(tc.pkg)
+
+			if got, want := got, tc.want; !cmp.Equal(got, want, cmpopts.EquateEmpty()) {
+				t.Errorf("Module.FilterConceptMaps(%v) = %v, want %v", tc.pkg, got, want)
+			}
+		})
+	}
+}
+
+func TestModuleFilterAll(t *testing.T) {
+	sd := mustReadJSON[definition.StructureDefinition](t, "testdata/structure-definition.json")
+	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
+	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
+	cm := mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json")
+	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	sdSource := &conformance.Source{Package: pkg}
+	csSource := &conformance.Source{Package: pkg}
+	vsSource := &conformance.Source{Package: pkg}
+	cmSource := &conformance.Source{Package: pkg}
+	module := conformance.DefaultModule()
+	module.AddDefinition(sd, sdSource)
+	module.AddDefinition(cs, csSource)
+	module.AddDefinition(vs, vsSource)
+	module.AddDefinition(cm, cmSource)
 
 	testCases := []struct {
 		name string
@@ -587,7 +709,7 @@ func TestModuleFilterAll(t *testing.T) {
 		{
 			name: "definition is from package",
 			pkg:  pkg,
-			want: []definition.Canonical{cs, sd, vs},
+			want: []definition.Canonical{cs, sd, vs, cm},
 		}, {
 			name: "definition is not from package",
 			pkg:  fhirig.NewPackage("hl7.fhir.r4.core", "4.0.2"),
@@ -758,6 +880,64 @@ func TestModuleLookupCodeSystem(t *testing.T) {
 			}
 			if got, want := got, tc.want; !cmp.Equal(got, want) {
 				t.Errorf("Module.LookupCodeSystem(%q) = %v, want %v", tc.url, got, want)
+			}
+		})
+	}
+}
+
+func TestModuleLookupConceptMap(t *testing.T) {
+	sd := mustReadJSON[definition.StructureDefinition](t, "testdata/structure-definition.json")
+	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
+	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
+	cm := mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json")
+	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	sdSource := &conformance.Source{Package: pkg}
+	csSource := &conformance.Source{Package: pkg}
+	vsSource := &conformance.Source{Package: pkg}
+	cmSource := &conformance.Source{Package: pkg}
+	module := conformance.DefaultModule()
+	module.AddDefinition(sd, sdSource)
+	module.AddDefinition(cs, csSource)
+	module.AddDefinition(vs, vsSource)
+	module.AddDefinition(cm, cmSource)
+
+	testCases := []struct {
+		name string
+		url  string
+		want *definition.ConceptMap
+	}{
+		{
+			name: "structure definition",
+			url:  sd.GetURL().GetValue(),
+			want: nil,
+		}, {
+			name: "code system",
+			url:  cs.GetURL().GetValue(),
+			want: nil,
+		}, {
+			name: "value set",
+			url:  vs.GetURL().GetValue(),
+			want: nil,
+		}, {
+			name: "concept map",
+			url:  cm.GetURL().GetValue(),
+			want: cm,
+		}, {
+			name: "unknown",
+			url:  "http://example.com/unknown",
+			want: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, ok := module.LookupConceptMap(tc.url)
+
+			if got, want := ok, tc.want != nil; got != want {
+				t.Fatalf("Module.LookupConceptMap(%q) ok = %v, want %v", tc.url, got, want)
+			}
+			if got, want := got, tc.want; !cmp.Equal(got, want) {
+				t.Errorf("Module.LookupConceptMap(%q) = %v, want %v", tc.url, got, want)
 			}
 		})
 	}
