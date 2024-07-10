@@ -13,8 +13,8 @@ import (
 	"strings"
 
 	"github.com/friendly-fhir/fhenix/config"
-	"github.com/friendly-fhir/fhenix/internal/model"
 	"github.com/friendly-fhir/fhenix/internal/templatefuncs"
+	"github.com/friendly-fhir/fhenix/model"
 )
 
 // Filter represents a filter that can be applied to a set of definitions.

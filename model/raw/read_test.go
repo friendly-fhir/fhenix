@@ -3,7 +3,7 @@ package raw_test
 import (
 	"testing"
 
-	"github.com/friendly-fhir/fhenix/internal/model/raw"
+	"github.com/friendly-fhir/fhenix/model/raw"
 )
 
 func TestReadStructureDefinition(t *testing.T) {

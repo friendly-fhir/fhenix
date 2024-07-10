@@ -8,9 +8,9 @@ import (
 
 	"github.com/friendly-fhir/fhenix/internal/config"
 	"github.com/friendly-fhir/fhenix/internal/fhirig"
-	"github.com/friendly-fhir/fhenix/internal/model"
-	"github.com/friendly-fhir/fhenix/internal/model/raw"
 	"github.com/friendly-fhir/fhenix/internal/template/engine"
+	"github.com/friendly-fhir/fhenix/model"
+	"github.com/friendly-fhir/fhenix/model/raw"
 	"github.com/spf13/cobra"
 )
 

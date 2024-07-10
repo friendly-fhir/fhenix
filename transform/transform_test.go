@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/friendly-fhir/fhenix/config"
-	"github.com/friendly-fhir/fhenix/internal/model"
+	"github.com/friendly-fhir/fhenix/model"
 	"github.com/friendly-fhir/fhenix/transform"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"

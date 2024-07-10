@@ -3,7 +3,7 @@ package model
 import (
 	"strconv"
 
-	"github.com/friendly-fhir/fhenix/internal/model/raw"
+	"github.com/friendly-fhir/fhenix/model/raw"
 )
 
 const Unbound = -1

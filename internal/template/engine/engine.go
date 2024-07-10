@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 
 	"github.com/friendly-fhir/fhenix/internal/config"
-	"github.com/friendly-fhir/fhenix/internal/model"
 	"github.com/friendly-fhir/fhenix/internal/template"
+	"github.com/friendly-fhir/fhenix/model"
 )
 
 // Engine is a template engine that processes a model and applies transformations.

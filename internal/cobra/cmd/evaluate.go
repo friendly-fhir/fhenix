@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"github.com/friendly-fhir/fhenix/internal/fhirig"
-	"github.com/friendly-fhir/fhenix/internal/model"
-	"github.com/friendly-fhir/fhenix/internal/model/raw"
 	"github.com/friendly-fhir/fhenix/internal/template"
+	"github.com/friendly-fhir/fhenix/model"
+	"github.com/friendly-fhir/fhenix/model/raw"
 	"github.com/spf13/cobra"
 )
 

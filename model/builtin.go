@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/friendly-fhir/fhenix/internal/model/raw"
+	"github.com/friendly-fhir/fhenix/model/raw"
 )
 
 // Builtin is a helper type that is used to represent language-level builtin types.

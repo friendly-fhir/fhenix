@@ -6,7 +6,7 @@ import (
 	"github.com/friendly-fhir/fhenix/config"
 	"github.com/friendly-fhir/fhenix/filter"
 	"github.com/friendly-fhir/fhenix/internal/fhirig"
-	"github.com/friendly-fhir/fhenix/internal/model"
+	"github.com/friendly-fhir/fhenix/model"
 )
 
 func TestFilterMatchesType(t *testing.T) {

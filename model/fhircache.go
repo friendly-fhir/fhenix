@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/friendly-fhir/fhenix/internal/fhirig"
-	"github.com/friendly-fhir/fhenix/internal/model/raw"
+	"github.com/friendly-fhir/fhenix/model/raw"
 )
 
 type FHIRDefinition[T any] struct {
