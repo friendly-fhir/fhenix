@@ -29,6 +29,9 @@ type Root struct {
 	// transformations use the same set of templates.
 	Default Transform `yaml:"default"`
 
+	// Input is a configuration node for specifying the input package.
+	Input Input `yaml:"input"`
+
 	// Transforms is a list of transformations to apply to the input data.
 	Transforms []*Transform `yaml:"transforms"`
 }

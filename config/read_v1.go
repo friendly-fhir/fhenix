@@ -41,6 +41,11 @@ func fromV1(data []byte, opts *opts.Options) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	result.Input = &Package{}
+	result.Input.Name = cfg.Input.Package.Name
+	result.Input.Version = cfg.Input.Package.Version
+	result.Input.Path = cfg.Input.Package.Path
+	result.Input.IncludeDependencies = cfg.Input.IncludeDependencies
 
 	result.Transforms = make([]*Transform, len(cfg.Transforms))
 	for i := range result.Transforms {

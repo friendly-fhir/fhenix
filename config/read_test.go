@@ -52,6 +52,11 @@ func TestFromFile(t *testing.T) {
 						},
 					},
 				},
+				Input: &config.Package{
+					Name:                "hl7.fhir.r4.core",
+					Version:             "4.0.1",
+					IncludeDependencies: true,
+				},
 			},
 		}, {
 			name:    "file does not exist",
