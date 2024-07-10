@@ -47,8 +47,14 @@ func NewModule(base string) *Module {
 	}
 }
 
+// DefaultModule returns a new conformance module with the FHIR canonical URL.
 func DefaultModule() *Module {
 	return NewModule("http://hl7.org/fhir")
+}
+
+// Base returns the base URL of the conformance module.
+func (m *Module) Base() string {
+	return m.base
 }
 
 // ParseFile parses a file and adds the definitions to the conformance module.

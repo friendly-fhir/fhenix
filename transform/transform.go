@@ -2,6 +2,7 @@ package transform
 
 import (
 	"io"
+	"path/filepath"
 	"strings"
 
 	"github.com/friendly-fhir/fhenix/config"
@@ -78,7 +79,7 @@ func (t *Transform) OutputPath(v any) (string, error) {
 	if err := t.output.Execute(&sb, v); err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(sb.String()), nil
+	return filepath.FromSlash(strings.TrimSpace(sb.String())), nil
 }
 
 // Execute the transformation with the given data.

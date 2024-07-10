@@ -2,6 +2,7 @@ package transform_test
 
 import (
 	"io/fs"
+	"path/filepath"
 	"testing"
 
 	"github.com/friendly-fhir/fhenix/config"
@@ -192,7 +193,7 @@ func TestTransformOutputPath(t *testing.T) {
 				OutputPath: "testdata/output.tmpl",
 			},
 			input: &model.Type{},
-			want:  "testdata/output.tmpl",
+			want:  filepath.Join("testdata", "output.tmpl"),
 		}, {
 			name: "with templated values",
 			config: &config.Transform{
@@ -201,7 +202,7 @@ func TestTransformOutputPath(t *testing.T) {
 			input: &model.Type{
 				Name: "SomeName",
 			},
-			want: "testdata/somename.output",
+			want: filepath.Join("testdata", "somename.output"),
 		}, {
 			name: "bad template invocation",
 			config: &config.Transform{
