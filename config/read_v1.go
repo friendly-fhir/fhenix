@@ -103,6 +103,7 @@ func fromV1Transform(opts *opts.Options, transform *cfg.Transform) (*Transform, 
 
 	result.Include = fromV1Filters(transform.Include)
 	result.Exclude = fromV1Filters(transform.Exclude)
+	result.OutputPath = transform.OutputPath
 
 	return &result, nil
 }
