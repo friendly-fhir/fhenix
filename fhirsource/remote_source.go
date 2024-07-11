@@ -2,6 +2,8 @@ package fhirsource
 
 import (
 	"context"
+	"path/filepath"
+	"slices"
 
 	"github.com/friendly-fhir/fhenix/internal/fhirig"
 )
@@ -44,6 +46,9 @@ func (rs *remoteSource) Bundles(ctx context.Context) ([]*Bundle, error) {
 		if err != nil {
 			return nil, err
 		}
+		files = slices.DeleteFunc(files, func(file string) bool {
+			return filepath.Base(file) == "package.json" || filepath.Ext(file) != ".json"
+		})
 		result = append(result, &Bundle{
 			Package: pkg,
 			Files:   files,
