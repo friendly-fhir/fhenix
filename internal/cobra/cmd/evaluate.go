@@ -3,11 +3,12 @@ package cmd
 import (
 	"fmt"
 	"strings"
+	"text/template"
 
 	"github.com/friendly-fhir/fhenix/internal/fhirig"
-	"github.com/friendly-fhir/fhenix/internal/template"
+	"github.com/friendly-fhir/fhenix/internal/templatefuncs"
 	"github.com/friendly-fhir/fhenix/model"
-	"github.com/friendly-fhir/fhenix/model/raw"
+	"github.com/friendly-fhir/fhenix/model/conformance/definition"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +25,7 @@ var Evaluate = &cobra.Command{
 			return cmd.Usage()
 		}
 		content := args[0]
-		tmpl, err := template.Parse("evaluate", content)
+		tmpl, err := template.New("").Funcs(templatefuncs.DefaultFuncs).Parse(content)
 		if err != nil {
 			return err
 		}
@@ -32,7 +33,7 @@ var Evaluate = &cobra.Command{
 			Source: &model.TypeSource{
 				Package:             fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1"),
 				File:                "StructureDefinition-string.json",
-				StructureDefinition: &raw.StructureDefinition{},
+				StructureDefinition: &definition.StructureDefinition{},
 			},
 			Kind:       "primitive-type",
 			Name:       "String",
