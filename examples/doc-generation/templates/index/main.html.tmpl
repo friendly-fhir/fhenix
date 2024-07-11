@@ -1,0 +1,9 @@
+<ul>
+{{ range .StructureDefinitions }}
+  <li>
+    <a href="{{ .Name | snakecase }}.html" title="{{ .Name }}">
+      {{ .Name | pascalcase }}
+    </a>
+  </li>
+{{ end }}
+</ul>

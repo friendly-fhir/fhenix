@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=https://friendly-fhir.github.io/fhenix/jsonschema/fhenix-v1.schema.json
+# The version of this configuration format
+version: 1
+
+# The name and version of the FHIR Package, as found on simplifier.net
+input:
+  package:
+    name: hl7.fhir.r4.core
+    version: "4.0.1"
+  include-dependencies: false
+
+mode: html
+
+output-dir: dist
+
+default:
+  templates:
+    header: 'templates/header.html.tmpl'
+    footer: 'templates/footer.html.tmpl'
+
+# The output transformations of the parsed FHIR content
+transforms:
+  - include:
+      - type: StructureDefinition
+        condition: '{{ and (eq .Kind "primitive-type") .IsSpecialization }}'
+    output-path: 'fhir/{{- .Name | snakecase -}}.html'
+    templates:
+      structure-definition: 'templates/elements/structure-definition.html.tmpl'
+  - include:
+      - type: StructureDefinition
+        condition: '{{ and (eq .Kind "primitive-type") .IsSpecialization }}'
+    output-path: 'fhir/index.html'
+    templates:
+      main: 'templates/index/main.html.tmpl'

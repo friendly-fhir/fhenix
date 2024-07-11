@@ -1,0 +1,24 @@
+#ifndef FHIR_{{- .Name | shoutcase -}}_HPP
+#define FHIR_{{- .Name | shoutcase -}}_HPP
+
+#pragma once
+
+#include <string_view>
+
+namespace fhir {
+
+{{ with .Short -}}
+{{ . | resize 74 | prefix "  // " }}
+{{- end -}}
+{{- with .Description -}}
+{{ . | resize 74 | prefix "  // " }}
+{{- end -}}
+{{- with .Comment -}}
+{{ . | resize 74 | prefix "  // " }}
+{{- end }}
+  struct {{ .Name | pascalcase }} {
+    // ...
+  };
+}
+
+#endif // FHIR_META_{{- .Name | shoutcase -}}_HPP

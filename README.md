@@ -14,6 +14,8 @@ relevant entities ([`StructureDefinition`], [`CodeSystem`], and
 [`ValueSet`]), constructs a model of these entities, and then feeds it into Go
 templates to generate content.
 
+Check out our [examples](./examples)!
+
 [FHIR]: https://www.hl7.org/fhir/
 [`ValueSet`]: https://www.hl7.org/fhir/valueset.html
 [`CodeSystem`]: https://www.hl7.org/fhir/codesystem.html
@@ -24,6 +26,13 @@ templates to generate content.
 [go-docs]: https://pkg.go.dev/github.com/friendly-fhir/fhenix
 [github-releases]: https://github.com/friendly-fhir/fhenix/releases
 [Simplifier registry]: https://simplifier.net
+
+## Quick Start
+
+* [📚 Getting Starts][docs]
+* [🚂 Examples](./examples)
+* [🚀 Use](#use)
+* [📦 Installing](#installing)
 
 ## Use
 

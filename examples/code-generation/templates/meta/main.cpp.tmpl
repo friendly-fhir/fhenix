@@ -1,0 +1,41 @@
+#ifndef FHIR_META_HPP
+#define FHIR_META_HPP
+
+#pragma once
+
+#include <string_view>
+
+namespace fhir {
+
+  namespace detail {
+    // A simple constexpr hash function for string_view.
+    constexpr auto hash(std::string_view name) noexcept -> std::size_t {
+      std::size_t value = 0;
+      for (auto c : name) {
+        value = (value * 31) + static_cast<std::size_t>(c);
+      }
+      return value;
+    }
+  }
+
+  // Checks whether the specified name is a known FHIR element name
+  constexpr inline auto is_element_name(std::string_view name)
+    noexcept -> bool
+  {
+    using namespace std::string_view_literals;
+
+    switch (::fhir::detail::hash(name)) {
+  {{ range .StructureDefinitions }}
+      case ::fhir::detail::hash("{{- .Name -}}"):
+        return name == "{{- .Name -}}"sv;
+  {{ end }}
+      default:
+        break;
+      }
+      return false
+    }
+  }
+
+} // namespace fhir
+
+#endif // FHIR_META_HPP
