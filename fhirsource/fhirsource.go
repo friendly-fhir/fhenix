@@ -25,6 +25,14 @@ type Listener interface {
 	OnCacheHit(pkg *Package)
 }
 
+type BaseListener struct{}
+
+func (l *BaseListener) OnFetchStart(*Package) {}
+
+func (l *BaseListener) OnFetchEnd(*Package, error) {}
+
+func (l *BaseListener) OnCacheHit(*Package) {}
+
 // New constructs a new [Source] from the specified configuration.
 func New(cfg *config.Package, listener Listener) (Source, error) {
 	pkg := fhirig.NewPackage(cfg.Name, cfg.Version)
