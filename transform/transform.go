@@ -20,7 +20,9 @@ type Transform struct {
 	template template.Template
 }
 
-func New(mode config.Mode, transform *config.Transform) (*Transform, error) {
+type Funcs map[string]any
+
+func New(mode config.Mode, transform *config.Transform, fns Funcs) (*Transform, error) {
 	if transform == nil {
 		panic("transform: New called with nil transform")
 	}
@@ -32,6 +34,9 @@ func New(mode config.Mode, transform *config.Transform) (*Transform, error) {
 	funcs, err := transformer.FuncsFromConfig(transform.Funcs)
 	if err != nil {
 		return nil, err
+	}
+	for name, fn := range fns {
+		funcs[name] = fn
 	}
 
 	tmpl, err := transformer.NewTemplate(engine, transform.Templates, funcs)

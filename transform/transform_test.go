@@ -86,7 +86,7 @@ func TestNew(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := transform.New(tc.mode, tc.input)
+			got, err := transform.New(tc.mode, tc.input, nil)
 
 			if got, want := err, tc.wantErr; !cmp.Equal(got, want, cmpopts.EquateErrors()) {
 				t.Fatalf("New() = error %v, want %v", got, want)
@@ -165,7 +165,7 @@ func TestTransformCanTransform(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			transform, err := transform.New(config.Mode("text"), tc.config)
+			transform, err := transform.New(config.Mode("text"), tc.config, nil)
 			if err != nil {
 				t.Fatalf("New() = %v", err)
 			}
@@ -217,7 +217,7 @@ func TestTransformOutputPath(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			transform, err := transform.New(config.Mode("text"), tc.config)
+			transform, err := transform.New(config.Mode("text"), tc.config, nil)
 			if err != nil {
 				t.Fatalf("New() = %v", err)
 			}
