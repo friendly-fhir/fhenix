@@ -19,8 +19,6 @@ var RunFlags struct {
 	Timeout     time.Duration
 }
 
-type listener struct{}
-
 var Run = &cobra.Command{
 	Use:   "run <config file> [--rm] [--output <output directory>] [--fhirig-cache <cache path>] [--timeout <timeout>]",
 	Short: "Run generation",
