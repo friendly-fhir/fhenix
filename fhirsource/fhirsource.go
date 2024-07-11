@@ -11,35 +11,45 @@ import (
 	"github.com/friendly-fhir/fhenix/internal/fhirig"
 )
 
+// Listener is a mechanism for listening to fetch events from remote package
+// sources.
+type Listener interface {
+	// OnFetchStart is called when a package fetch is started.
+	OnFetchStart(pkg *Package)
+
+	// OnFetchEnd is called when a package fetch is completed.
+	OnFetchEnd(pkg *Package, err error)
+
+	// OnCacheHit is called when a package fetch is completed and the cache was
+	// hit.
+	OnCacheHit(pkg *Package)
+}
+
+// New constructs a new [Source] from the specified configuration.
+func New(cfg *config.Package, listener Listener) (Source, error) {
+	pkg := fhirig.NewPackage(cfg.Name, cfg.Version)
+	if cfg.Path != "" {
+		return NewLocalSource(pkg, cfg.Path), nil
+	}
+	if listener == nil {
+		listener = &fhirig.BaseListener{}
+	}
+	cache := fhirig.NewSystemCache()
+	cache.Listener = listener
+	return NewRemoteSource(pkg, cache), nil
+}
+
 // Source is a mechanism for retrieving JSON FHIR definitions.
 //
 // This abstracts local from remote sources, so that a path may exist on disk
 // or by a simplify.net registry package.
 type Source interface {
-	// Definitions returns a list of file paths to JSON FHIR definitions.
-	Definitions(ctx context.Context) ([]string, error)
+	// Bundles returns a list of the defined package bundles in the fhir source.
+	Bundles(ctx context.Context) ([]*Bundle, error)
 }
 
-// New constructs a new Source from the configuration.
-func New(config *config.Package, listener RemoteListener) Source {
-	if config.Path != "" {
-		return NewLocalSource(config.Path)
-	}
-	return NewPackageSource(config.Name, config.Version, listener)
-}
-
-// NewLocalSource constructs a new local Source from the specified path.
-func NewLocalSource(path string) Source {
-	return localSource(path)
-}
-
-// NewPackageSource constructs a new remote Source from the specified package.
-func NewPackageSource(name, version string, listener RemoteListener) Source {
-	if listener == nil {
-		listener = &fhirig.BaseListener{}
-	}
-	return &remoteSource{
-		pkg:      fhirig.NewPackage(name, version),
-		listener: listener,
-	}
+// Bundle is a collection of files that are part of a FHIR package.
+type Bundle struct {
+	Package *fhirig.Package
+	Files   []string
 }

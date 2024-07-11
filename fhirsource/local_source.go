@@ -4,16 +4,38 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+
+	"github.com/friendly-fhir/fhenix/internal/fhirig"
 )
 
-type localSource string
-
-func (ls localSource) Definitions(ctx context.Context) ([]string, error) {
-	path := filepath.FromSlash(string(ls))
-	return ls.walkEntries(nil, path)
+// NewLocalSource constructs a new local Source from the specified path.
+func NewLocalSource(pkg *fhirig.Package, path string) Source {
+	return &localSource{
+		path: path,
+		pkg:  pkg,
+	}
 }
 
-func (ls localSource) walkEntries(result []string, path string) ([]string, error) {
+type localSource struct {
+	path string
+	pkg  *fhirig.Package
+}
+
+func (ls *localSource) Bundles(ctx context.Context) ([]*Bundle, error) {
+	path := filepath.FromSlash(string(ls.path))
+	entries, err := ls.walkEntries(nil, path)
+	if err != nil {
+		return nil, err
+	}
+	return []*Bundle{
+		{
+			Package: ls.pkg,
+			Files:   entries,
+		},
+	}, nil
+}
+
+func (ls *localSource) walkEntries(result []string, path string) ([]string, error) {
 	entries, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err

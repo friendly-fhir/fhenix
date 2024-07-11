@@ -6,26 +6,50 @@ import (
 	"github.com/friendly-fhir/fhenix/internal/fhirig"
 )
 
+// PackageCache is a mechanism for caching FHIR packages.
+type PackageCache interface {
+	// Dependencies returns the dependencies of the specified package.
+	Dependencies(pkg *Package) ([]*Package, error)
+
+	// FetchAndGet fetches the specified package and returns the files.
+	FetchAndGet(ctx context.Context, pkg *Package) ([]string, error)
+}
+
+// NewRemoteSource constructs a new remote Source from the specified package.
+func NewRemoteSource(pkg *Package, cache PackageCache) Source {
+	return &remoteSource{
+		pkg:   pkg,
+		cache: cache,
+	}
+}
+
 type Package = fhirig.Package
 
-type RemoteListener interface {
-	OnFetchStart(pkg *Package)
-	OnFetchEnd(pkg *Package, err error)
-	OnCacheHit(pkg *Package)
-}
-
 type remoteSource struct {
-	pkg      *fhirig.Package
-	listener RemoteListener
+	pkg   *fhirig.Package
+	cache PackageCache
 }
 
-func (rs *remoteSource) Definitions(ctx context.Context) ([]string, error) {
-	cache := fhirig.NewSystemCache()
-	cache.Listener = rs.listener
-	if !cache.Has(rs.pkg) {
-		if err := cache.Fetch(ctx, rs.pkg); err != nil {
+func (rs *remoteSource) Bundles(ctx context.Context) ([]*Bundle, error) {
+	dependencies, err := rs.cache.Dependencies(rs.pkg)
+	if err != nil {
+		return nil, err
+	}
+	packages := []*Package{rs.pkg}
+	packages = append(packages, dependencies...)
+
+	var result []*Bundle
+	for _, pkg := range packages {
+		files, err := rs.cache.FetchAndGet(ctx, pkg)
+		if err != nil {
 			return nil, err
 		}
+		result = append(result, &Bundle{
+			Package: pkg,
+			Files:   files,
+		})
 	}
-	return cache.Get(rs.pkg)
+	return result, nil
 }
+
+var _ Source = (*remoteSource)(nil)
