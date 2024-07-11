@@ -4,13 +4,13 @@ import (
 	"strings"
 
 	"github.com/friendly-fhir/fhenix/internal/fhirig"
-	"github.com/friendly-fhir/fhenix/model/raw"
+	"github.com/friendly-fhir/fhenix/model/conformance/definition"
 )
 
 type TypeSource struct {
 	Package             *fhirig.Package
 	File                string
-	StructureDefinition *raw.StructureDefinition
+	StructureDefinition *definition.StructureDefinition
 }
 
 type TypeKind string
@@ -93,11 +93,11 @@ func (t *Type) HasDerived() bool {
 }
 
 func (t *Type) IsConstraint() bool {
-	return t.Source.StructureDefinition.Derivation == "constraint"
+	return t.Source.StructureDefinition.GetDerivation().GetValue() == "constraint"
 }
 
 func (t *Type) IsSpecialization() bool {
-	return t.Source.StructureDefinition.Derivation == "specialization"
+	return t.Source.StructureDefinition.GetDerivation().GetValue() == "specialization"
 }
 
 func (t *Type) IsResource() bool {

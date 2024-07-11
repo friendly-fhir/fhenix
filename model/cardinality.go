@@ -3,7 +3,7 @@ package model
 import (
 	"strconv"
 
-	"github.com/friendly-fhir/fhenix/model/raw"
+	fhir "github.com/friendly-fhir/go-fhir/r4/core"
 )
 
 const Unbound = -1
@@ -45,27 +45,27 @@ func (c *Cardinality) IsUnboundedList() bool {
 	return c.Max == -1
 }
 
-func (c *Cardinality) FromElementDefinition(ed *raw.ElementDefinition) (err error) {
-	c.Min = ed.Min
+func (c *Cardinality) FromElementDefinition(ed *fhir.ElementDefinition) (err error) {
+	c.Min = int(ed.GetMin().GetValue())
 	c.Max = 1
-	if ed.Max == "*" {
+	if ed.GetMax().GetValue() == "*" {
 		c.Max = -1
 	} else {
-		c.Max, err = strconv.Atoi(ed.Max)
+		c.Max, err = strconv.Atoi(ed.GetMax().GetValue())
 	}
 	return
 }
 
-func (c *Cardinality) FromBaseElementDefinition(ed *raw.ElementDefinition) (err error) {
+func (c *Cardinality) FromBaseElementDefinition(ed *fhir.ElementDefinition) (err error) {
 	if ed.Base == nil {
 		return c.FromElementDefinition(ed)
 	}
-	c.Min = ed.Base.Min
+	c.Min = int(ed.GetBase().GetMin().GetValue())
 	c.Max = 1
-	if ed.Base.Max == "*" {
+	if ed.GetBase().GetMax().GetValue() == "*" {
 		c.Max = -1
 	} else {
-		c.Max, err = strconv.Atoi(ed.Base.Max)
+		c.Max, err = strconv.Atoi(ed.GetBase().GetMax().GetValue())
 	}
 	return
 }
