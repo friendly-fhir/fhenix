@@ -236,6 +236,7 @@ func (r *PackageCache) fetch(ctx context.Context, pkg *Package, force bool) erro
 	}()
 
 	reader := newTeeReadCloser(pkgFile, file)
+	defer reader.Close()
 
 	gzReader, err := gzip.NewReader(reader)
 	if err != nil {
