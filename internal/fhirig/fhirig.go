@@ -203,27 +203,28 @@ func (r *PackageCache) fetcher() Fetcher {
 }
 
 func (r *PackageCache) fetch(ctx context.Context, pkg *Package, force bool) error {
+	listener := r.listener()
 	if !force && r.Has(pkg) {
-		r.listener().OnCacheHit(pkg)
+		listener.OnCacheHit(pkg)
 		return nil
 	}
 
 	url := fmt.Sprintf("%s/%s/%s", r.registry(), pkg.Name(), pkg.Version())
-	r.listener().OnFetchStart(pkg)
+	listener.OnFetchStart(pkg)
 	pkgFile, err := r.fetcher().Fetch(url)
 	if err != nil {
-		r.listener().OnFetchEnd(pkg, err)
+		listener.OnFetchEnd(pkg, err)
 		return err
 	}
 	root := r.path(pkg)
 	if err := os.MkdirAll(root, 0755); err != nil {
-		r.listener().OnFetchEnd(pkg, err)
+		listener.OnFetchEnd(pkg, err)
 		return err
 	}
 	path := filepath.Join(root, "package.tar.gz")
 	file, err := os.Create(path)
 	if err != nil {
-		r.listener().OnFetchEnd(pkg, err)
+		listener.OnFetchEnd(pkg, err)
 		return err
 	}
 	defer file.Close()
@@ -240,7 +241,7 @@ func (r *PackageCache) fetch(ctx context.Context, pkg *Package, force bool) erro
 
 	gzReader, err := gzip.NewReader(reader)
 	if err != nil {
-		r.listener().OnFetchEnd(pkg, err)
+		listener.OnFetchEnd(pkg, err)
 		return err
 	}
 	defer gzReader.Close()
@@ -252,7 +253,7 @@ func (r *PackageCache) fetch(ctx context.Context, pkg *Package, force bool) erro
 			break
 		}
 		if err != nil {
-			r.listener().OnFetchEnd(pkg, err)
+			listener.OnFetchEnd(pkg, err)
 			return err
 		}
 
@@ -284,7 +285,7 @@ func (r *PackageCache) fetch(ctx context.Context, pkg *Package, force bool) erro
 		path := r.path(pkg, name)
 		file, err := os.Create(path)
 		if err != nil {
-			r.listener().OnFetchEnd(pkg, err)
+			listener.OnFetchEnd(pkg, err)
 			return err
 		}
 		pkgReader := io.TeeReader(tarReader, file)
@@ -301,7 +302,7 @@ func (r *PackageCache) fetch(ctx context.Context, pkg *Package, force bool) erro
 		}
 	}
 	success = true
-	r.listener().OnFetchEnd(pkg, nil)
+	listener.OnFetchEnd(pkg, nil)
 	return nil
 }
 
