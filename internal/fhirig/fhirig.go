@@ -237,8 +237,7 @@ func (r *PackageCache) fetch(ctx context.Context, pkg *Package, force bool) erro
 		}
 	}()
 
-	reader := newTeeReadCloser(pkgFile, file)
-	defer reader.Close()
+	reader := io.TeeReader(pkgFile, file)
 
 	gzReader, err := gzip.NewReader(reader)
 	if err != nil {
@@ -342,29 +341,6 @@ func hasPrefix(name string, prefixes ...string) bool {
 		}
 	}
 	return false
-}
-
-type teeReadCloser struct {
-	r io.ReadCloser
-	w io.WriteCloser
-}
-
-func newTeeReadCloser(r io.ReadCloser, w io.WriteCloser) io.ReadCloser {
-	return &teeReadCloser{r: r, w: w}
-}
-
-func (t *teeReadCloser) Read(p []byte) (n int, err error) {
-	n, err = t.r.Read(p)
-	if n > 0 {
-		if n, err := t.w.Write(p[:n]); err != nil {
-			return n, err
-		}
-	}
-	return
-}
-
-func (t *teeReadCloser) Close() error {
-	return errors.Join(t.r.Close(), t.w.Close())
 }
 
 type defaultFetcher int
