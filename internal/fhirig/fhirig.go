@@ -216,6 +216,7 @@ func (r *PackageCache) fetch(ctx context.Context, pkg *Package, force bool) erro
 		listener.OnFetchEnd(pkg, err)
 		return err
 	}
+	defer pkgFile.Close()
 	root := r.path(pkg)
 	if err := os.MkdirAll(root, 0755); err != nil {
 		listener.OnFetchEnd(pkg, err)
