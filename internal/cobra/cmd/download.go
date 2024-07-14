@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/friendly-fhir/fhenix/registry"
@@ -14,6 +15,9 @@ var DownloadFlags struct {
 	Timeout time.Duration
 	Force   bool
 	Verbose bool
+
+	ExcludeDependencies bool
+	Parallel            int
 
 	CacheDir  string
 	Registry  string
@@ -63,10 +67,8 @@ var Download = &cobra.Command{
 	Use:   "download <package> <version>",
 	Short: "Download FHIR IGs",
 	Long:  "Download FHIR Implementation Guides (IGs) from the web",
+	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) != 2 {
-			return cmd.Usage()
-		}
 		pkg, version := args[0], args[1]
 
 		ctx := context.Background()
@@ -99,15 +101,13 @@ var Download = &cobra.Command{
 		}
 		cache.AddClient("default", client)
 
-		fetch := cache.Fetch
-		if DownloadFlags.Force {
-			fetch = cache.ForceFetch
-		}
-		if err := fetch(ctx, "default", pkg, version); err != nil {
+		downloader := registry.NewDownloader(cache).Force(DownloadFlags.Force).Workers(DownloadFlags.Parallel)
+
+		downloader.Add("default", pkg, version, !DownloadFlags.ExcludeDependencies)
+		if err := downloader.Start(ctx); err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "error: %v\n", err)
 			os.Exit(1)
 		}
-
 		return nil
 	},
 }
@@ -121,4 +121,6 @@ func init() {
 	flags.StringVarP(&DownloadFlags.Registry, "registry", "r", "https://packages.simplifier.net", "registry to download the package from")
 	flags.StringVarP(&DownloadFlags.AuthToken, "auth-token", "T", "", "auth token for the registry")
 	flags.BoolVarP(&DownloadFlags.Verbose, "verbose", "v", false, "enable verbose output")
+	flags.BoolVar(&DownloadFlags.ExcludeDependencies, "exclude-dependencies", false, "include dependencies when downloading the package")
+	flags.IntVarP(&DownloadFlags.Parallel, "parallel", "p", runtime.NumCPU(), "number of parallel downloads")
 }
