@@ -95,7 +95,7 @@ func (c *Client) Fetch(ctx context.Context, name, version string) (content io.Re
 		return nil, 0, fmt.Errorf("%w: %d", ErrStatusCode, resp.StatusCode)
 	}
 	switch content := resp.Header.Get("Content-Type"); content {
-	case "application/gzip":
+	case "application/gzip", "application/tar+gzip":
 		break // no work to be done here
 	case "application/json":
 		var pkg struct {

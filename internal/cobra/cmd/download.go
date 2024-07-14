@@ -3,29 +3,43 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"strings"
+	"os"
+	"time"
 
-	"github.com/friendly-fhir/fhenix/internal/fhirig"
+	"github.com/friendly-fhir/fhenix/registry"
 	"github.com/spf13/cobra"
 )
 
-type Listener struct {
-	fhirig.BaseListener
+var DownloadFlags struct {
+	Timeout time.Duration
+	Force   bool
+	Verbose bool
+
+	CacheDir  string
+	Registry  string
+	AuthToken string
 }
 
-func (*Listener) OnFetchStart(pkg *fhirig.Package) {
-	fmt.Printf("Fetching package %s\n", pkg.String())
+type downloadListener struct {
+	verbose bool
+	registry.BaseCacheListener
 }
-func (*Listener) OnFetchEnd(pkg *fhirig.Package, err error) {
-	if err != nil {
-		fmt.Printf("Package %s failed to be fetched: %v\n", pkg.String(), err)
-		return
+
+func (l *downloadListener) OnFetch(registry, pkg, version string, data int64) {
+	fmt.Printf("downloading %s@%s (from %s): %d bytes\n", pkg, version, registry, data)
+}
+
+func (l *downloadListener) OnCacheHit(registry, pkg, version string) {
+	fmt.Printf("cache-hit: %s@%s (from %s)\n", pkg, version, registry)
+}
+
+func (l *downloadListener) OnUnpack(registry, pkg, version, file string, data int64) {
+	if l.verbose {
+		fmt.Printf("[%s@%s] %s (from %s): %d bytes\n", pkg, version, file, registry, data)
 	}
-	fmt.Printf("Package %s fetched successfully\n", pkg.String())
 }
-func (*Listener) OnCacheHit(pkg *fhirig.Package) {
-	fmt.Printf("Package %s already downloaded\n", pkg.String())
-}
+
+var _ registry.CacheListener = (*downloadListener)(nil)
 
 var Download = &cobra.Command{
 	Use:   "download <package> <version>",
@@ -37,33 +51,45 @@ var Download = &cobra.Command{
 		}
 		pkg, version := args[0], args[1]
 
-		timeout, err := cmd.Flags().GetDuration("timeout")
-		if err != nil {
-			return err
+		ctx := context.Background()
+		if DownloadFlags.Timeout != 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(cmd.Context(), DownloadFlags.Timeout)
+			defer cancel()
 		}
-		ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
-		defer cancel()
+		var cache *registry.Cache
+		if dir := DownloadFlags.CacheDir; dir != "" {
+			cache = registry.NewCache(dir)
+		} else {
+			cache = registry.DefaultCache()
+		}
+		listener := &downloadListener{
+			verbose: DownloadFlags.Verbose,
+		}
+		cache.AddListener(listener)
 
-		dir, err := cmd.Flags().GetString("fhirig-cache")
-		if err != nil {
-			return err
-		}
-		if strings.TrimSpace(dir) == "" {
-			dir = fhirig.SystemCacheDir()
+		var opts []registry.Option
+		opts = append(opts, registry.URL(DownloadFlags.Registry))
+		if token := DownloadFlags.AuthToken; token != "" {
+			opts = append(opts, registry.Auth(registry.StaticTokenSource(token)))
 		}
 
-		cache := &fhirig.PackageCache{
-			Root:     dir,
-			Listener: &Listener{},
+		client, err := registry.NewClient(ctx, opts...)
+		if err != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "error: %v\n", err)
+			os.Exit(1)
 		}
+		cache.AddClient("default", client)
+
 		fetch := cache.Fetch
-		if force, err := cmd.Flags().GetBool("force"); err == nil && force {
+		if DownloadFlags.Force {
 			fetch = cache.ForceFetch
 		}
-
-		if err := fetch(ctx, fhirig.NewPackage(pkg, version)); err != nil {
-			return fmt.Errorf("fetching %v@%v: %w", pkg, version, err)
+		if err := fetch(ctx, "default", pkg, version); err != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "error: %v\n", err)
+			os.Exit(1)
 		}
+
 		return nil
 	},
 }
@@ -71,6 +97,10 @@ var Download = &cobra.Command{
 func init() {
 	Root.AddCommand(Download)
 	flags := Download.Flags()
-	flags.DurationP("timeout", "t", 0, "timeout for the download")
-	flags.BoolP("force", "f", false, "force download even if the package is already cached")
+	flags.DurationVarP(&DownloadFlags.Timeout, "timeout", "t", 0, "timeout for the download")
+	flags.BoolVarP(&DownloadFlags.Force, "force", "f", false, "force download even if the package is already cached")
+	flags.StringVar(&DownloadFlags.CacheDir, "fhir-cache", "", "directory to store the downloaded packages")
+	flags.StringVarP(&DownloadFlags.Registry, "registry", "r", "https://packages.simplifier.net", "registry to download the package from")
+	flags.StringVarP(&DownloadFlags.AuthToken, "auth-token", "T", "", "auth token for the registry")
+	flags.BoolVarP(&DownloadFlags.Verbose, "verbose", "v", false, "enable verbose output")
 }
