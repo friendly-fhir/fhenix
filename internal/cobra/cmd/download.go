@@ -25,8 +25,26 @@ type downloadListener struct {
 	registry.BaseCacheListener
 }
 
+func (l *downloadListener) BeforeFetch(registry, pkg, version string) {
+	fmt.Printf("connecting to %s@%s (from %s)\n", pkg, version, registry)
+}
+
 func (l *downloadListener) OnFetch(registry, pkg, version string, data int64) {
 	fmt.Printf("downloading %s@%s (from %s): %d bytes\n", pkg, version, registry, data)
+}
+
+func (l *downloadListener) OnFetchWrite(registry, pkg, version string, data []byte) {
+	if l.verbose {
+		fmt.Printf("* [%s@%s] (from %s): %d bytes...\n", pkg, version, registry, len(data))
+	}
+}
+
+func (l *downloadListener) AfterFetch(registry, pkg, version string, err error) {
+	if err != nil {
+		fmt.Printf("download error: %v\n", err)
+	} else {
+		fmt.Printf("downloaded %s@%s (from %s)\n", pkg, version, registry)
+	}
 }
 
 func (l *downloadListener) OnCacheHit(registry, pkg, version string) {

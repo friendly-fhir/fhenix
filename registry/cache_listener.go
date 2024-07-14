@@ -3,12 +3,18 @@ package registry
 // CacheListener is a listener for events occurring when populating the cache.
 type CacheListener interface {
 
+	// BeforeFetch is an event handler invoked before a fetch operation is initiated.
+	BeforeFetch(registry, pkg, version string)
+
 	// OnFetch is an event handler invoked when a fetch operation is initiated.
 	OnFetch(registry, pkg, version string, size int64)
 
 	// OnFetchWrite is an event handler invoked when bytes written during a fetch
 	// operation.
 	OnFetchWrite(registry, pkg, version string, bytes []byte)
+
+	// AfterFetch is an event handler invoked after a fetch operation is completed.
+	AfterFetch(registry, pkg, version string, err error)
 
 	// OnUnpack is an event handler invoked when a file is unpacked.
 	OnUnpack(registry, pkg, version, file string, size int64)
@@ -30,11 +36,17 @@ type CacheListener interface {
 // BaseCacheListener is a base implementation of the [CacheListener] interface.
 type BaseCacheListener struct{}
 
+// BeforeFetch is a no-op implementation of the [CacheListener] interface.
+func (BaseCacheListener) BeforeFetch(registry, pkg, version string) {}
+
 // OnFetch is a no-op implementation of the [CacheListener] interface.
 func (BaseCacheListener) OnFetch(registry, pkg, version string, size int64) {}
 
 // OnFetchWrite is a no-op implementation of the [CacheListener] interface.
 func (BaseCacheListener) OnFetchWrite(registry, pkg, version string, bytes []byte) {}
+
+// AfterFetch is a no-op implementation of the [CacheListener] interface.
+func (BaseCacheListener) AfterFetch(registry, pkg, version string, err error) {}
 
 // OnUnpack is a no-op implementation of the [CacheListener] interface.
 func (BaseCacheListener) OnUnpack(registry, pkg, version, file string, size int64) {}
@@ -56,6 +68,13 @@ var _ CacheListener = (*BaseCacheListener)(nil)
 // a single listener.
 type Listeners []CacheListener
 
+// BeforeFetch is an event handler invoked before a fetch operation is initiated.
+func (l Listeners) BeforeFetch(registry, pkg, version string) {
+	for _, listener := range l {
+		listener.BeforeFetch(registry, pkg, version)
+	}
+}
+
 // OnFetch is an event handler invoked when a fetch operation is initiated.
 func (l Listeners) OnFetch(registry, pkg, version string, size int64) {
 	for _, listener := range l {
@@ -68,6 +87,13 @@ func (l Listeners) OnFetch(registry, pkg, version string, size int64) {
 func (l Listeners) OnFetchWrite(registry, pkg, version string, bytes []byte) {
 	for _, listener := range l {
 		listener.OnFetchWrite(registry, pkg, version, bytes)
+	}
+}
+
+// AfterFetch is an event handler invoked after a fetch operation is completed.
+func (l Listeners) AfterFetch(registry, pkg, version string, err error) {
+	for _, listener := range l {
+		listener.AfterFetch(registry, pkg, version, err)
 	}
 }
 

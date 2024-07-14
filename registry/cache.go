@@ -97,7 +97,7 @@ func (c *Cache) ForceFetch(ctx context.Context, registry, pkg, version string) e
 	if !ok {
 		return fmt.Errorf("fhir cache: unknown name %q", registry)
 	}
-
+	c.listeners.BeforeFetch(registry, pkg, version)
 	content, size, err := client.Fetch(ctx, pkg, version)
 	if err != nil {
 		return err
@@ -108,6 +108,7 @@ func (c *Cache) ForceFetch(ctx context.Context, registry, pkg, version string) e
 		c.listeners.OnFetchWrite(registry, pkg, version, p)
 	}))
 	c.listeners.OnFetch(registry, pkg, version, size)
+	defer c.listeners.AfterFetch(registry, pkg, version, err)
 
 	unpackers := archive.Unpackers{
 		archive.UnpackFunc(func(s string, i int64, _ io.Reader) error {
