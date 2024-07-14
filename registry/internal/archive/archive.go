@@ -16,8 +16,19 @@ func (o option) apply(a *Archive) {
 	o(a)
 }
 
-// Visitor is a function that visits each file in the archive.
-type Visitor func(name string, r io.Reader) error
+// Unpacker is a function that visits each file in the archive for the purpose
+// of processing and unpacking it.
+type Unpacker interface {
+	Unpack(name string, r io.Reader) error
+}
+
+type VisitorFunc func(name string, r io.Reader) error
+
+func (f VisitorFunc) Unpack(name string, r io.Reader) error {
+	return f(name, r)
+}
+
+var _ Unpacker = VisitorFunc(nil)
 
 // Transform returns an [Option] that sets the transform function for the
 // archive.
@@ -37,19 +48,17 @@ func Filter(fn func(string) bool) Option {
 
 // Archive represents a FHIR IG package in an archived format.
 type Archive struct {
-	reader          io.Reader
-	transform       func(string) string
-	filter          func(string) bool
-	transformReader func(string, io.Reader) io.Reader
+	reader    io.Reader
+	transform func(string) string
+	filter    func(string) bool
 }
 
 // New creates a new archive from a reader.
 func New(r io.Reader, opts ...Option) *Archive {
 	archive := &Archive{
-		reader:          r,
-		transform:       func(s string) string { return s },
-		filter:          func(s string) bool { return true },
-		transformReader: func(_ string, r io.Reader) io.Reader { return r },
+		reader:    r,
+		transform: func(s string) string { return s },
+		filter:    func(s string) bool { return true },
 	}
 	for _, opt := range opts {
 		opt.apply(archive)
@@ -57,9 +66,9 @@ func New(r io.Reader, opts ...Option) *Archive {
 	return archive
 }
 
-// VisitFiles visits each file in the archive, calling the provided function
+// Unpack visits each file in the archive, calling the provided function
 // with the name and file reader.
-func (a *Archive) VisitFiles(visitor Visitor) error {
+func (a *Archive) Unpack(visitor Unpacker) error {
 	gzipReader, err := gzip.NewReader(a.reader)
 	if err != nil {
 		return err
@@ -81,7 +90,7 @@ func (a *Archive) VisitFiles(visitor Visitor) error {
 		}
 
 		path := a.transform(header.Name)
-		if err := visitor(path, a.transformReader(path, tarReader)); err != nil {
+		if err := visitor.Unpack(path, tarReader); err != nil {
 			return err
 		}
 	}

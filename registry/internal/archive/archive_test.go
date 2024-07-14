@@ -79,13 +79,13 @@ func TestVisitFiles(t *testing.T) {
 			if tc.transform != nil {
 				opts = append(opts, archive.Transform(tc.transform))
 			}
-			archive := archive.New(bytes.NewReader(tc.contents), opts...)
+			sut := archive.New(bytes.NewReader(tc.contents), opts...)
 
 			var got []string
-			err := archive.VisitFiles(func(s string, _ io.Reader) error {
+			err := sut.Unpack(archive.VisitorFunc(func(s string, _ io.Reader) error {
 				got = append(got, s)
 				return nil
-			})
+			}))
 
 			if got, want := err, tc.wantErr; !cmp.Equal(got, want, cmpopts.EquateErrors()) {
 				t.Fatalf("VisitFiles() = error %v, want %v", got, want)
