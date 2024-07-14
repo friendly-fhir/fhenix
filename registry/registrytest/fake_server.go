@@ -76,8 +76,6 @@ func (f *FakeServer) SetIndirectTarball(name, version string, reader io.Reader) 
 		w.Header().Add("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(manifest); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
-		} else {
-			w.WriteHeader(http.StatusOK)
 		}
 	})
 
@@ -105,8 +103,6 @@ func (f *FakeServer) setContent(pattern, contentType string, reader io.Reader) {
 
 		if _, err := io.Copy(w, reader); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
-		} else {
-			w.WriteHeader(http.StatusOK)
 		}
 	})
 }
