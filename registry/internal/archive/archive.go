@@ -19,16 +19,8 @@ func (o option) apply(a *Archive) {
 // Unpacker is a function that visits each file in the archive for the purpose
 // of processing and unpacking it.
 type Unpacker interface {
-	Unpack(name string, r io.Reader) error
+	Unpack(name string, length int64, r io.Reader) error
 }
-
-type VisitorFunc func(name string, r io.Reader) error
-
-func (f VisitorFunc) Unpack(name string, r io.Reader) error {
-	return f(name, r)
-}
-
-var _ Unpacker = VisitorFunc(nil)
 
 // Transform returns an [Option] that sets the transform function for the
 // archive.
@@ -90,7 +82,7 @@ func (a *Archive) Unpack(visitor Unpacker) error {
 		}
 
 		path := a.transform(header.Name)
-		if err := visitor.Unpack(path, tarReader); err != nil {
+		if err := visitor.Unpack(path, header.Size, tarReader); err != nil {
 			return err
 		}
 	}

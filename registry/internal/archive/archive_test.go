@@ -82,7 +82,7 @@ func TestVisitFiles(t *testing.T) {
 			sut := archive.New(bytes.NewReader(tc.contents), opts...)
 
 			var got []string
-			err := sut.Unpack(archive.VisitorFunc(func(s string, _ io.Reader) error {
+			err := sut.Unpack(archive.UnpackFunc(func(s string, _ int64, _ io.Reader) error {
 				got = append(got, s)
 				return nil
 			}))

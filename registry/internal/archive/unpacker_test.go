@@ -36,7 +36,7 @@ func TestDiskUnpacker_Unpack(t *testing.T) {
 			}
 			out := filepath.Join(unpacker.Root, path)
 
-			err := unpacker.Unpack(path, bytes.NewReader(tc.content))
+			err := unpacker.Unpack(path, int64(len(tc.content)), bytes.NewReader(tc.content))
 
 			if got, want := err, tc.wantErr; !cmp.Equal(got, want, cmpopts.EquateErrors()) {
 				t.Fatalf("Unpack() error = %v, want %v", got, want)
