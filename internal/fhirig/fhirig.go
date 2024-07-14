@@ -288,6 +288,7 @@ func (r *PackageCache) fetch(ctx context.Context, pkg *Package, force bool) erro
 			listener.OnFetchEnd(pkg, err)
 			return err
 		}
+		defer file.Close()
 		pkgReader := io.TeeReader(tarReader, file)
 
 		// If the file is a package.json file, download its dependencies, and still
