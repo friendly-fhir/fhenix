@@ -52,6 +52,11 @@ func TestCache_Fetch(t *testing.T) {
 			registry: "test",
 			pkg:      "test.package",
 			version:  "2.0.0",
+		}, {
+			name:     "local package",
+			registry: "local",
+			pkg:      "local.package",
+			version:  "1.0.0",
 		},
 	}
 
@@ -59,6 +64,8 @@ func TestCache_Fetch(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			cache := registry.NewCache(t.TempDir())
 			cache.AddClient("test", client.Client)
+			cache.AddLocalPackage("local.package", "1.0.0", filepath.Join("testdata", "test-package"))
+
 			if err := cache.ForceFetch(context.Background(), "test", "test.package", "2.0.0"); err != nil {
 				t.Fatalf("Cache.ForceFetch() error = %v", err)
 			}
@@ -102,6 +109,11 @@ func TestCache_ForceFetch(t *testing.T) {
 			pkg:      "fail.package",
 			version:  "1.0.0",
 			wantErr:  testErr,
+		}, {
+			name:     "local package does no fetching",
+			registry: "local",
+			pkg:      "local.package",
+			version:  "1.0.0",
 		},
 	}
 
@@ -109,6 +121,7 @@ func TestCache_ForceFetch(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			cache := registry.NewCache(t.TempDir())
 			cache.AddClient("test", client.Client)
+			cache.AddLocalPackage("local.package", "1.0.0", filepath.Join("testdata", "test-package"))
 
 			err := cache.ForceFetch(context.Background(), tc.registry, tc.pkg, tc.version)
 
@@ -188,6 +201,12 @@ func TestCache_Get(t *testing.T) {
 			registry: "test",
 			pkg:      "test.package",
 			wantErr:  cmpopts.AnyError,
+		}, {
+			name:     "local package",
+			registry: "local",
+			pkg:      "local.package",
+			version:  "1.0.0",
+			want:     readManifest(t, filepath.Join("testdata", "test-package", "package.json")),
 		},
 	}
 
@@ -196,6 +215,7 @@ func TestCache_Get(t *testing.T) {
 			dir := t.TempDir()
 			cache := registry.NewCache(dir)
 			cache.AddClient("test", client.Client)
+			cache.AddLocalPackage("local.package", "1.0.0", filepath.Join("testdata", "test-package"))
 			if err := cache.ForceFetch(context.Background(), "test", "test.package", "2.0.0"); err != nil {
 				t.Fatalf("Cache.ForceFetch() error = %v", err)
 			}
@@ -375,6 +395,11 @@ func TestCache_Delete(t *testing.T) {
 			registry: "test",
 			pkg:      "test.package",
 			wantErr:  cmpopts.AnyError,
+		}, {
+			name:     "local package",
+			registry: "local",
+			pkg:      "local.package",
+			version:  "1.0.0",
 		},
 	}
 
@@ -383,6 +408,7 @@ func TestCache_Delete(t *testing.T) {
 			dir := t.TempDir()
 			cache := registry.NewCache(dir)
 			cache.AddClient("test", client.Client)
+			cache.AddLocalPackage("local.package", "1.0.0", filepath.Join("testdata", "test-package"))
 			if err := cache.ForceFetch(context.Background(), "test", "test.package", "2.0.0"); err != nil {
 				t.Fatalf("Cache.ForceFetch() error = %v", err)
 			}

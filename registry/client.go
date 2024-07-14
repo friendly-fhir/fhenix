@@ -72,6 +72,13 @@ func NewClient(ctx context.Context, opts ...Option) (*Client, error) {
 	}, nil
 }
 
+// DefaultClient returns a new registry client with the default simplifier
+// registry configured, using a non-authenticated client.
+var DefaultClient = &Client{
+	client: http.DefaultClient,
+	url:    "https://packages.simplifier.net",
+}
+
 var (
 	ErrStatusCode     = fmt.Errorf("unexpected status code")
 	ErrNoTarball      = fmt.Errorf("missing tarball URL")

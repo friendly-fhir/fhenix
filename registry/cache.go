@@ -11,19 +11,31 @@ import (
 	"github.com/friendly-fhir/fhenix/registry/internal/archive"
 )
 
+const (
+	Local   = "local"
+	Default = "default"
+)
+
 // Cache is a cache of downloaded and used FHIR packages from a given registry.
 type Cache struct {
 	outputPath string
 
 	clients   map[string]*Client
 	listeners Listeners
+
+	// localPackages is a map of local packages that are not fetched from a
+	// remote registry, but are explicitly added to the cache.
+	localPackages map[string]string
 }
 
 // NewCache creates a new cache with the specified output path.
 func NewCache(outputPath string) *Cache {
 	return &Cache{
 		outputPath: filepath.FromSlash(outputPath),
-		clients:    make(map[string]*Client),
+		clients: map[string]*Client{
+			Default: DefaultClient,
+		},
+		localPackages: make(map[string]string),
 	}
 }
 
@@ -52,6 +64,12 @@ func (c *Cache) AddClient(registry string, client *Client) {
 	c.clients[registry] = client
 }
 
+// AddLocalPackage adds a local package to the cache that may be referenced
+// later. The package registry is always considered "local".
+func (c *Cache) AddLocalPackage(pkg, version, path string) {
+	c.localPackages[c.localKey(pkg, version)] = path
+}
+
 // Contains returns true if the cache contains the specified package.
 // Containment does not imply that the package is valid or usable -- just that
 // the contents can be found on disk.
@@ -73,6 +91,10 @@ func (c *Cache) Delete(registry, pkg, version string) error {
 	if registry == "" || pkg == "" || version == "" {
 		return fmt.Errorf("fhir cache: registry, package, and version must be specified")
 	}
+	if registry == Local {
+		delete(c.localPackages, c.localKey(pkg, version))
+		return nil
+	}
 
 	cache := c.CacheDir(registry, pkg, version)
 	if cache == "" {
@@ -93,6 +115,11 @@ func (c *Cache) Fetch(ctx context.Context, registry, pkg, version string) error 
 
 // ForceFetch forces a download of the specified package from the registry.
 func (c *Cache) ForceFetch(ctx context.Context, registry, pkg, version string) error {
+	if registry == Local {
+		c.listeners.OnCacheHit(registry, pkg, version)
+		return nil
+	}
+
 	client, ok := c.clients[registry]
 	if !ok {
 		return fmt.Errorf("fhir cache: unknown name %q", registry)
@@ -146,6 +173,9 @@ func (c *Cache) ForceFetch(ctx context.Context, registry, pkg, version string) e
 // If the registry is unknown, or if any parameters are not set, an empty string
 // is returned.
 func (c *Cache) CacheDir(registry, pkg, version string) string {
+	if registry == Local {
+		return c.localPackages[c.localKey(pkg, version)]
+	}
 	client, ok := c.clients[registry]
 	if !ok || pkg == "" || version == "" || registry == "" {
 		return ""
@@ -177,6 +207,11 @@ func (c *Cache) GetOrFetch(ctx context.Context, registry, pkg, version string) (
 	}
 
 	return c.Get(registry, pkg, version)
+}
+
+// localKey returns a key for a local package.
+func (c *Cache) localKey(pkg, version string) string {
+	return fmt.Sprintf("%s@%s", pkg, version)
 }
 
 type writerFunc func([]byte)

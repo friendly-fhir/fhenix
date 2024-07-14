@@ -1,6 +1,8 @@
 /*
 Package fhirsource provides a wrapper for retrieving FHIR source definitions
 from the fhenix configuration format.
+
+DEPRECATED: This package is deprecated and will be removed in a future release.
 */
 package fhirsource
 
