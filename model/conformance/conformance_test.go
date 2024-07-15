@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/friendly-fhir/fhenix/internal/fhirig"
 	"github.com/friendly-fhir/fhenix/model/conformance"
 	"github.com/friendly-fhir/fhenix/model/conformance/definition"
+	"github.com/friendly-fhir/fhenix/registry"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
@@ -71,7 +71,7 @@ func TestModuleParseFile(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			module := conformance.DefaultModule()
-			pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+			pkg := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
 
 			err := module.ParseFile(tc.path, pkg)
 			if got, want := err, tc.wantErr; !cmp.Equal(got, want, cmpopts.EquateErrors()) {
@@ -91,7 +91,7 @@ func TestModuleLookupCanonical(t *testing.T) {
 	cm := mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json")
 
 	module := conformance.DefaultModule()
-	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	pkg := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
 	module.AddDefinition(sd, &conformance.Source{Package: pkg})
 	module.AddDefinition(cs, &conformance.Source{Package: pkg})
 	module.AddDefinition(vs, &conformance.Source{Package: pkg})
@@ -170,7 +170,7 @@ func TestModuleLookupSource(t *testing.T) {
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
 	cm := mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json")
-	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	pkg := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
@@ -256,7 +256,7 @@ func TestModuleCanonical(t *testing.T) {
 	cm := mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json")
 
 	module := conformance.DefaultModule()
-	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	pkg := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
 	module.AddDefinition(sd, &conformance.Source{Package: pkg})
 	module.AddDefinition(cs, &conformance.Source{Package: pkg})
 	module.AddDefinition(vs, &conformance.Source{Package: pkg})
@@ -306,7 +306,7 @@ func TestModuleSource(t *testing.T) {
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
 	cm := mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json")
-	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	pkg := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
@@ -361,7 +361,7 @@ func TestModuleSourceOf(t *testing.T) {
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
 	cm := mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json")
-	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	pkg := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
@@ -411,7 +411,7 @@ func TestModuleStructureDefinitions(t *testing.T) {
 	sd := mustReadJSON[definition.StructureDefinition](t, "testdata/structure-definition.json")
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
-	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	pkg := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
@@ -432,7 +432,7 @@ func TestModuleValueSets(t *testing.T) {
 	sd := mustReadJSON[definition.StructureDefinition](t, "testdata/structure-definition.json")
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
-	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	pkg := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
@@ -453,7 +453,7 @@ func TestModuleCodeSystems(t *testing.T) {
 	sd := mustReadJSON[definition.StructureDefinition](t, "testdata/structure-definition.json")
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
-	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	pkg := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
@@ -475,7 +475,7 @@ func TestModuleConceptMaps(t *testing.T) {
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
 	cm := mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json")
-	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	pkg := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
@@ -499,7 +499,7 @@ func TestModuleAll(t *testing.T) {
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
 	cm := mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json")
-	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	pkg := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
@@ -526,7 +526,7 @@ func TestModuleFilterStructureDefinitions(t *testing.T) {
 	sd := mustReadJSON[definition.StructureDefinition](t, "testdata/structure-definition.json")
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
-	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	pkg := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
@@ -537,7 +537,7 @@ func TestModuleFilterStructureDefinitions(t *testing.T) {
 
 	testCases := []struct {
 		name string
-		pkg  *fhirig.Package
+		pkg  registry.PackageRef
 		want []*definition.StructureDefinition
 	}{
 		{
@@ -546,7 +546,7 @@ func TestModuleFilterStructureDefinitions(t *testing.T) {
 			want: []*definition.StructureDefinition{sd},
 		}, {
 			name: "structure definition is not from package",
-			pkg:  fhirig.NewPackage("hl7.fhir.r4.core", "4.0.2"),
+			pkg:  registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.2"),
 			want: nil,
 		},
 	}
@@ -566,7 +566,7 @@ func TestModuleFilterValueSets(t *testing.T) {
 	sd := mustReadJSON[definition.StructureDefinition](t, "testdata/structure-definition.json")
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
-	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	pkg := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
@@ -577,7 +577,7 @@ func TestModuleFilterValueSets(t *testing.T) {
 
 	testCases := []struct {
 		name string
-		pkg  *fhirig.Package
+		pkg  registry.PackageRef
 		want []*definition.ValueSets
 	}{
 		{
@@ -586,7 +586,7 @@ func TestModuleFilterValueSets(t *testing.T) {
 			want: []*definition.ValueSets{vs},
 		}, {
 			name: "value set is not from package",
-			pkg:  fhirig.NewPackage("hl7.fhir.r4.core", "4.0.2"),
+			pkg:  registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.2"),
 			want: nil,
 		},
 	}
@@ -606,7 +606,7 @@ func TestModuleFilterCodeSystems(t *testing.T) {
 	sd := mustReadJSON[definition.StructureDefinition](t, "testdata/structure-definition.json")
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
-	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	pkg := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
@@ -617,7 +617,7 @@ func TestModuleFilterCodeSystems(t *testing.T) {
 
 	testCases := []struct {
 		name string
-		pkg  *fhirig.Package
+		pkg  registry.PackageRef
 		want []*definition.CodeSystem
 	}{
 		{
@@ -626,7 +626,7 @@ func TestModuleFilterCodeSystems(t *testing.T) {
 			want: []*definition.CodeSystem{cs},
 		}, {
 			name: "code system is not from package",
-			pkg:  fhirig.NewPackage("hl7.fhir.r4.core", "4.0.2"),
+			pkg:  registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.2"),
 			want: nil,
 		},
 	}
@@ -647,7 +647,7 @@ func TestModuleFilterConceptMaps(t *testing.T) {
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
 	cm := mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json")
-	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	pkg := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
@@ -660,7 +660,7 @@ func TestModuleFilterConceptMaps(t *testing.T) {
 
 	testCases := []struct {
 		name string
-		pkg  *fhirig.Package
+		pkg  registry.PackageRef
 		want []*definition.ConceptMap
 	}{
 		{
@@ -669,7 +669,7 @@ func TestModuleFilterConceptMaps(t *testing.T) {
 			want: []*definition.ConceptMap{cm},
 		}, {
 			name: "concept map is not from package",
-			pkg:  fhirig.NewPackage("hl7.fhir.r4.core", "4.0.2"),
+			pkg:  registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.2"),
 			want: nil,
 		},
 	}
@@ -690,7 +690,7 @@ func TestModuleFilterAll(t *testing.T) {
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
 	cm := mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json")
-	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	pkg := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
@@ -703,7 +703,7 @@ func TestModuleFilterAll(t *testing.T) {
 
 	testCases := []struct {
 		name string
-		pkg  *fhirig.Package
+		pkg  registry.PackageRef
 		want []definition.Canonical
 	}{
 		{
@@ -712,7 +712,7 @@ func TestModuleFilterAll(t *testing.T) {
 			want: []definition.Canonical{cs, sd, vs, cm},
 		}, {
 			name: "definition is not from package",
-			pkg:  fhirig.NewPackage("hl7.fhir.r4.core", "4.0.2"),
+			pkg:  registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.2"),
 			want: nil,
 		},
 	}
@@ -732,7 +732,7 @@ func TestModuleLookupStructureDefinition(t *testing.T) {
 	sd := mustReadJSON[definition.StructureDefinition](t, "testdata/structure-definition.json")
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
-	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	pkg := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
@@ -787,7 +787,7 @@ func TestModuleLookupValueSet(t *testing.T) {
 	sd := mustReadJSON[definition.StructureDefinition](t, "testdata/structure-definition.json")
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
-	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	pkg := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
@@ -838,7 +838,7 @@ func TestModuleLookupCodeSystem(t *testing.T) {
 	sd := mustReadJSON[definition.StructureDefinition](t, "testdata/structure-definition.json")
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
-	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	pkg := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}
@@ -890,7 +890,7 @@ func TestModuleLookupConceptMap(t *testing.T) {
 	cs := mustReadJSON[definition.CodeSystem](t, "testdata/code-system.json")
 	vs := mustReadJSON[definition.ValueSets](t, "testdata/value-set.json")
 	cm := mustReadJSON[definition.ConceptMap](t, "testdata/concept-map.json")
-	pkg := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
+	pkg := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
 	sdSource := &conformance.Source{Package: pkg}
 	csSource := &conformance.Source{Package: pkg}
 	vsSource := &conformance.Source{Package: pkg}

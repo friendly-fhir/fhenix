@@ -3,12 +3,12 @@ package model
 import (
 	"strings"
 
-	"github.com/friendly-fhir/fhenix/internal/fhirig"
 	"github.com/friendly-fhir/fhenix/model/conformance/definition"
+	"github.com/friendly-fhir/fhenix/registry"
 )
 
 type TypeSource struct {
-	Package             *fhirig.Package
+	Package             registry.PackageRef
 	File                string
 	StructureDefinition *definition.StructureDefinition
 }

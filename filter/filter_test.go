@@ -5,8 +5,8 @@ import (
 
 	"github.com/friendly-fhir/fhenix/config"
 	"github.com/friendly-fhir/fhenix/filter"
-	"github.com/friendly-fhir/fhenix/internal/fhirig"
 	"github.com/friendly-fhir/fhenix/model"
+	"github.com/friendly-fhir/fhenix/registry"
 )
 
 func TestFilterMatchesType(t *testing.T) {
@@ -86,7 +86,7 @@ func TestFilterMatchesType(t *testing.T) {
 			cfg:  &config.TransformFilter{Package: "hl7.fhir.core.r4"},
 			t: &model.Type{
 				Source: &model.TypeSource{
-					Package: fhirig.NewPackage("hl7.fhir.core.r4", "4.0.1"),
+					Package: registry.NewPackageRef("default", "hl7.fhir.core.r4", "4.0.1"),
 				},
 			},
 			want: true,
@@ -95,7 +95,7 @@ func TestFilterMatchesType(t *testing.T) {
 			cfg:  &config.TransformFilter{Package: "hl7.fhir.core.r4"},
 			t: &model.Type{
 				Source: &model.TypeSource{
-					Package: fhirig.NewPackage("hl7.fhir.core.r5", "5.0.0"),
+					Package: registry.NewPackageRef("default", "hl7.fhir.core.r5", "5.0.0"),
 				},
 			},
 			want: false,

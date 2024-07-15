@@ -7,9 +7,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/friendly-fhir/fhenix/internal/fhirig"
 	"github.com/friendly-fhir/fhenix/model/conformance"
 	"github.com/friendly-fhir/fhenix/model/conformance/definition"
+	"github.com/friendly-fhir/fhenix/registry"
 	fhir "github.com/friendly-fhir/go-fhir/r4/core"
 )
 
@@ -41,7 +41,9 @@ func (m *Model) DefineType(url string) error {
 	}
 	src := m.module.SourceOf(entry)
 
-	return m.typeFromStructureDef(src.Package, src.File, entry)
+	ref := registry.NewPackageRef("default", src.Package.Name(), src.Package.Version())
+
+	return m.typeFromStructureDef(ref, src.File, entry)
 }
 
 func (m *Model) DefineAllTypes() error {
@@ -80,7 +82,7 @@ func (m *Model) Type(url string) (*Type, error) {
 	return result, nil
 }
 
-func (m *Model) typeFromStructureDef(pkg *fhirig.Package, file string, sd *definition.StructureDefinition) error {
+func (m *Model) typeFromStructureDef(pkg registry.PackageRef, file string, sd *definition.StructureDefinition) error {
 	t := &Type{
 		Source: &TypeSource{
 			Package:             pkg,

@@ -14,6 +14,7 @@ import (
 	"github.com/friendly-fhir/fhenix/fhirsource"
 	"github.com/friendly-fhir/fhenix/model"
 	"github.com/friendly-fhir/fhenix/model/conformance"
+	"github.com/friendly-fhir/fhenix/registry"
 	"github.com/friendly-fhir/fhenix/transform"
 )
 
@@ -101,7 +102,8 @@ func (d *Driver) Run(ctx context.Context) error {
 
 	for _, bundle := range bundles {
 		for _, file := range bundle.Files {
-			if err := module.ParseFile(file, bundle.Package); err != nil {
+			ref := registry.NewPackageRef("default", bundle.Package.Name(), bundle.Package.Version())
+			if err := module.ParseFile(file, ref); err != nil {
 				fmt.Println("Error parsing file '"+file+"':", err)
 			}
 		}

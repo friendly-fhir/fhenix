@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/friendly-fhir/fhenix/internal/fhirig"
+	"github.com/friendly-fhir/fhenix/registry"
 )
 
 type TypeSet struct {
@@ -68,9 +68,9 @@ func (ts *TypeSet) TypesMatching(condition func(*Type) bool) *TypeSet {
 	return result
 }
 
-func (ts *TypeSet) DefinedInPackage(pkg *fhirig.Package) *TypeSet {
+func (ts *TypeSet) DefinedInPackage(pkg registry.PackageRef) *TypeSet {
 	return ts.TypesMatching(func(t *Type) bool {
-		return t.Source.Package.Equal(pkg)
+		return t.Source.Package == pkg
 	})
 }
 

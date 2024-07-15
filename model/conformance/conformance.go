@@ -12,13 +12,13 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/friendly-fhir/fhenix/internal/fhirig"
 	"github.com/friendly-fhir/fhenix/model/conformance/definition"
+	"github.com/friendly-fhir/fhenix/registry"
 )
 
 // Source is the source information for a FHIR definition.
 type Source struct {
-	Package *fhirig.Package
+	Package registry.PackageRef
 	File    string
 }
 
@@ -58,8 +58,23 @@ func (m *Module) Base() string {
 	return m.base
 }
 
+// FromPackage loads the conformance module from all the resources in the registry
+// cache.
+func (m *Module) FromPackage(pkg *registry.Package) error {
+	files, err := pkg.Files()
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		if err := m.ParseFile(file, pkg.Ref); err != nil {
+			continue
+		}
+	}
+	return nil
+}
+
 // ParseFile parses a file and adds the definitions to the conformance module.
-func (m *Module) ParseFile(file string, pkg *fhirig.Package) error {
+func (m *Module) ParseFile(file string, pkg registry.PackageRef) error {
 	canonical, err := definition.FromFile(file)
 	if err != nil {
 		return err
@@ -73,7 +88,7 @@ func (m *Module) ParseFile(file string, pkg *fhirig.Package) error {
 
 // ParseReader parses a reader and adds the definitions to the conformance
 // module.
-func (m *Module) ParseReader(reader io.Reader, pkg *fhirig.Package) error {
+func (m *Module) ParseReader(reader io.Reader, pkg registry.PackageRef) error {
 	canonical, err := definition.FromReader(reader)
 	if err != nil {
 		return err
@@ -86,7 +101,7 @@ func (m *Module) ParseReader(reader io.Reader, pkg *fhirig.Package) error {
 
 // ParseJSON parses a JSON byte slice and adds the definitions to the
 // conformance module.
-func (m *Module) ParseJSON(data []byte, pkg *fhirig.Package) error {
+func (m *Module) ParseJSON(data []byte, pkg registry.PackageRef) error {
 	canonical, err := definition.FromJSON(data)
 	if err != nil {
 		return err
@@ -143,7 +158,7 @@ func sortURL[T definition.Canonical](a, b T) int {
 
 // FilterStructureDefinitions returns the structure definitions that are from
 // the given package.
-func (m *Module) FilterStructureDefinitions(pkg *fhirig.Package) []*definition.StructureDefinition {
+func (m *Module) FilterStructureDefinitions(pkg registry.PackageRef) []*definition.StructureDefinition {
 	var result []*definition.StructureDefinition
 	for _, def := range m.structureDefinitions {
 		if src := m.SourceOf(def); src != nil && src.Package.String() == pkg.String() {
@@ -155,7 +170,7 @@ func (m *Module) FilterStructureDefinitions(pkg *fhirig.Package) []*definition.S
 }
 
 // FilterValueSets returns the value sets that are from the given package.
-func (m *Module) FilterValueSets(pkg *fhirig.Package) []*definition.ValueSets {
+func (m *Module) FilterValueSets(pkg registry.PackageRef) []*definition.ValueSets {
 	var result []*definition.ValueSets
 	for _, def := range m.valueSets {
 		if src := m.SourceOf(def); src != nil && src.Package.String() == pkg.String() {
@@ -167,7 +182,7 @@ func (m *Module) FilterValueSets(pkg *fhirig.Package) []*definition.ValueSets {
 }
 
 // FilterCodeSystems returns the code systems that are from the given package.
-func (m *Module) FilterCodeSystems(pkg *fhirig.Package) []*definition.CodeSystem {
+func (m *Module) FilterCodeSystems(pkg registry.PackageRef) []*definition.CodeSystem {
 	var result []*definition.CodeSystem
 	for _, def := range m.codeSystems {
 		if src := m.SourceOf(def); src != nil && src.Package.String() == pkg.String() {
@@ -179,7 +194,7 @@ func (m *Module) FilterCodeSystems(pkg *fhirig.Package) []*definition.CodeSystem
 }
 
 // FilterConceptMaps returns the concept maps that are from the given package.
-func (m *Module) FilterConceptMaps(pkg *fhirig.Package) []*definition.ConceptMap {
+func (m *Module) FilterConceptMaps(pkg registry.PackageRef) []*definition.ConceptMap {
 	var result []*definition.ConceptMap
 	for _, def := range m.conceptMaps {
 		if src := m.SourceOf(def); src != nil && src.Package.String() == pkg.String() {
@@ -190,7 +205,7 @@ func (m *Module) FilterConceptMaps(pkg *fhirig.Package) []*definition.ConceptMap
 	return result
 }
 
-func (m *Module) FilterAll(pkg *fhirig.Package) []definition.Canonical {
+func (m *Module) FilterAll(pkg registry.PackageRef) []definition.Canonical {
 	var result []definition.Canonical
 	for _, src := range m.source {
 		if src.Source.Package.String() == pkg.String() {

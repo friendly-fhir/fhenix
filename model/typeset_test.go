@@ -3,8 +3,8 @@ package model_test
 import (
 	"testing"
 
-	"github.com/friendly-fhir/fhenix/internal/fhirig"
 	"github.com/friendly-fhir/fhenix/model"
+	"github.com/friendly-fhir/fhenix/registry"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -206,8 +206,8 @@ func TestTypeSet_InBase(t *testing.T) {
 }
 
 func TestTypeSet_DefinedInPackage(t *testing.T) {
-	pkg1 := fhirig.NewPackage("hl7.fhir.r4.core", "4.0.1")
-	pkg2 := fhirig.NewPackage("hl7.fhir.us.core", "6.0.0")
+	pkg1 := registry.NewPackageRef("default", "hl7.fhir.r4.core", "4.0.1")
+	pkg2 := registry.NewPackageRef("default", "hl7.fhir.us.core", "6.0.0")
 	ty1 := &model.Type{Name: "Patient", URL: "http://example.com/Patient", Source: &model.TypeSource{Package: pkg1}}
 	ty2 := &model.Type{Name: "Encounter", URL: "http://example.com/Encounter", Source: &model.TypeSource{Package: pkg1}}
 	ty3 := &model.Type{Name: "Observation", URL: "http://second-example.com/Observation", Source: &model.TypeSource{Package: pkg2}}
