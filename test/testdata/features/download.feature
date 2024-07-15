@@ -24,7 +24,6 @@ Rule: Downloading FHIR packages from simplifier
     When the command is executed
     Then the FHIR cache contains packages:
       | Package                      | Version |
-      | hl7.fhir.us.core             | 6.1.0   |
       | hl7.fhir.r4.core             | 4.0.1   |
       | hl7.fhir.r4.examples         | 4.0.1   |
       | hl7.fhir.us.core             | 6.1.0   |
@@ -46,9 +45,9 @@ Rule: Downloading FHIR packages from simplifier
       | hl7.fhir.us.core             | 6.1.0   |
 
     And the FHIR cache does not contain packages:
+      | Package                      | Version |
       | hl7.fhir.r4.core             | 4.0.1   |
       | hl7.fhir.r4.examples         | 4.0.1   |
-      | hl7.fhir.us.core             | 6.1.0   |
       | hl7.fhir.uv.bulkdata         | 2.0.0   |
       | hl7.fhir.uv.extensions.r4    | 1.0.0   |
       | hl7.fhir.uv.sdc              | 3.0.0   |
