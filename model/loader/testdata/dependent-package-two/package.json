@@ -1,0 +1,19 @@
+{
+  "name": "dependent.package.two",
+  "version": "1.0.0",
+  "fhir-version-list": [
+    "4.0.1"
+  ],
+  "dependencies": {
+    "leaf.package": "1.0.0"
+  },
+  "type": "fhir.core",
+  "license": "CC0-1.0",
+  "title": "Test Package",
+  "description": "Test Definitions",
+  "author": "HL7 Inc",
+  "url": "http://hl7.org/fhir/R4",
+  "tools-version": 3,
+  "canonical": "http://hl7.org/fhir",
+  "homepage": "http://hl7.org/fhir"
+}
