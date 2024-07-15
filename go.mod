@@ -6,6 +6,8 @@ require github.com/spf13/cobra v1.8.0
 
 require github.com/friendly-fhir/go-fhir v0.0.0-20240627035249-eacfb3386af5
 
+require gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
+
 require (
 	github.com/google/go-cmp v0.6.0
 	github.com/iancoleman/strcase v0.3.0

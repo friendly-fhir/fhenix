@@ -136,38 +136,3 @@ func TestDownloader(t *testing.T) {
 		})
 	}
 }
-
-type testListener struct {
-	t *testing.T
-	registry.BaseCacheListener
-}
-
-func (l *testListener) BeforeFetch(registry, name, version string) {
-	l.t.Logf("fetching %v::%v@%v", registry, name, version)
-}
-
-func (l *testListener) AfterFetch(registry, name, version string, err error) {
-	l.t.Logf("fetching %v::%v@%v: %v", registry, name, version, err)
-}
-
-var _ registry.CacheListener = (*testListener)(nil)
-
-func TestDownloader_RealPackage(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping test in short mode.")
-	}
-
-	cache := registry.NewCache(t.TempDir())
-	cache.AddListener(&testListener{t: t})
-
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
-	defer cancel()
-
-	downloader := registry.NewDownloader(cache).Workers(4).Force(true)
-	downloader.Add("default", "hl7.fhir.us.core", "6.1.0", true)
-
-	if err := downloader.Start(ctx); err != nil {
-		t.Fatalf("Downloader.Start() = error %v; want nil", err)
-	}
-}

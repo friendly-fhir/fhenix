@@ -29,6 +29,17 @@ jobs:
       contents: read
       id-token: write
 
+  integration-test:
+    name: Integration Test
+    uses: friendly-fhir/.github/.github/workflows/go-build-and-test.yaml@master
+    with:
+      packages: ./test/...
+      go-version-file: ./test/go.mod
+      short-test: false
+    permissions:
+      contents: read
+      id-token: write
+
   snapshot-release:
     name: Snapshot Release
     uses: friendly-fhir/.github/.github/workflows/go-release.yaml@master
