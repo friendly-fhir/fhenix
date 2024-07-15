@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -123,6 +124,7 @@ func InitializeScenario(t *testing.T, verbose bool) func(ctx *godog.ScenarioCont
 		ctx.When(`^the command is executed$`, tc.ExecuteCommand)
 
 		ctx.Then(`^the FHIR cache contains packages:$`, tc.HasPackages)
+		ctx.Then(`^the FHIR cache does not contain packages:$`, tc.DoesNotHavePackages)
 	}
 }
 
@@ -188,8 +190,20 @@ func (tc *TestCase) HasPackages(packages *godog.Table) error {
 		name := row.Cells[0].Value
 		version := row.Cells[1].Value
 
-		if _, err := tc.cache.Get("default", name, version); err != nil {
-			return err
+		if !tc.cache.Contains("default", name, version) {
+			return fmt.Errorf("expected package %s@%s not found in cache", name, version)
+		}
+	}
+	return nil
+}
+
+func (tc *TestCase) DoesNotHavePackages(packages *godog.Table) error {
+	for _, row := range packages.Rows[1:] {
+		name := row.Cells[0].Value
+		version := row.Cells[1].Value
+
+		if tc.cache.Contains("default", name, version) {
+			return fmt.Errorf("unexpected package %s@%s found in cache", name, version)
 		}
 	}
 	return nil
