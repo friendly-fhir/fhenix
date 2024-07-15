@@ -32,6 +32,9 @@ type Package struct {
 
 	// Manifest is the package manifest.
 	Manifest *PackageManifest
+
+	// Ref is the reference to the package.
+	Ref PackageRef
 }
 
 // NewPackage creates a new package from the content at the specified file path.

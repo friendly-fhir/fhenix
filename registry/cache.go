@@ -194,7 +194,12 @@ func (c *Cache) Get(registry, pkg, version string) (*Package, error) {
 		return nil, fmt.Errorf("fhir cache: unknown registry %q", registry)
 	}
 
-	return NewPackage(path)
+	p, err := NewPackage(path)
+	if err != nil {
+		return nil, err
+	}
+	p.Ref = NewPackageRef(registry, pkg, version)
+	return p, nil
 }
 
 // GetOrFetch returns the package from the cache, or fetches it if it is not

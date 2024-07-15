@@ -56,3 +56,7 @@ func (p PackageRef) String() string {
 }
 
 var _ fmt.Stringer = (*PackageRef)(nil)
+
+func NewPackageRef(registry, name, version string) PackageRef {
+	return PackageRef(fmt.Sprintf("%s::%s@%s", registry, name, version))
+}

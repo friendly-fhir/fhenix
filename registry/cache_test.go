@@ -227,6 +227,7 @@ func TestCache_Get(t *testing.T) {
 				want = &registry.Package{
 					Path:     cache.CacheDir(tc.registry, tc.pkg, tc.version),
 					Manifest: tc.want,
+					Ref:      registry.NewPackageRef(tc.registry, tc.pkg, tc.version),
 				}
 			}
 			if got, want := err, tc.wantErr; !cmp.Equal(got, want, cmpopts.EquateErrors()) {
@@ -346,6 +347,7 @@ func TestCache_GetOrFetch(t *testing.T) {
 				want = &registry.Package{
 					Path:     cache.CacheDir(tc.registry, tc.pkg, tc.version),
 					Manifest: tc.want,
+					Ref:      registry.NewPackageRef(tc.registry, tc.pkg, tc.version),
 				}
 			}
 			if got, want := err, tc.wantErr; !cmp.Equal(got, want, cmpopts.EquateErrors()) {
