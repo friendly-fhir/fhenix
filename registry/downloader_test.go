@@ -161,7 +161,7 @@ func TestDownloader_RealPackage(t *testing.T) {
 	cache.AddListener(&testListener{t: t})
 
 	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
 
 	downloader := registry.NewDownloader(cache).Workers(4).Force(true)
