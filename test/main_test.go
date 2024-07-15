@@ -186,25 +186,27 @@ func (tc *TestCase) ExecuteCommand() error {
 }
 
 func (tc *TestCase) HasPackages(packages *godog.Table) error {
+	var errs []error
 	for _, row := range packages.Rows[1:] {
 		name := row.Cells[0].Value
 		version := row.Cells[1].Value
 
 		if !tc.cache.Contains("default", name, version) {
-			return fmt.Errorf("expected package %s@%s not found in cache", name, version)
+			errs = append(errs, fmt.Errorf("expected package %s@%s not found in cache", name, version))
 		}
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 func (tc *TestCase) DoesNotHavePackages(packages *godog.Table) error {
+	var errs []error
 	for _, row := range packages.Rows[1:] {
 		name := row.Cells[0].Value
 		version := row.Cells[1].Value
 
 		if tc.cache.Contains("default", name, version) {
-			return fmt.Errorf("unexpected package %s@%s found in cache", name, version)
+			errs = append(errs, fmt.Errorf("unexpected package %s@%s found in cache", name, version))
 		}
 	}
-	return nil
+	return errors.Join(errs...)
 }
