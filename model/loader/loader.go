@@ -56,6 +56,7 @@ func WithListeners(listeners ...Listener) Option {
 
 // Loader is a FHIR definition loader that loads definitions from a registry.
 type Loader struct {
+	m         sync.Mutex
 	module    *conformance.Module
 	cache     *registry.Cache
 	parallel  int
@@ -100,7 +101,9 @@ func (l *Loader) load(ref registry.PackageRef) task.Task {
 		for _, listener := range l.listeners {
 			listener.OnLoad(ref)
 		}
+		l.m.Lock()
 		err = l.module.FromPackage(pkg)
+		l.m.Unlock()
 		if err != nil {
 			return err
 		}
