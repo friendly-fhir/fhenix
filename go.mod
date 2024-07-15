@@ -4,7 +4,7 @@ go 1.22.3
 
 require github.com/spf13/cobra v1.8.0
 
-require github.com/friendly-fhir/go-fhir v0.0.0-20240627035249-eacfb3386af5 // indirect
+require github.com/friendly-fhir/go-fhir v0.0.0-20240627035249-eacfb3386af5
 
 require (
 	github.com/google/go-cmp v0.6.0
