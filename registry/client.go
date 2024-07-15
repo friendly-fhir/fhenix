@@ -99,7 +99,7 @@ func (c *Client) Fetch(ctx context.Context, name, version string) (content io.Re
 		return nil, 0, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, 0, fmt.Errorf("%w: %d", ErrStatusCode, resp.StatusCode)
+		return nil, 0, fmt.Errorf("%w: %d - %s", ErrStatusCode, resp.StatusCode, resp.Status)
 	}
 	switch content := resp.Header.Get("Content-Type"); content {
 	case "application/gzip", "application/tar+gzip":
@@ -130,7 +130,7 @@ func (c *Client) Fetch(ctx context.Context, name, version string) (content io.Re
 			return nil, 0, err
 		}
 		if resp.StatusCode != http.StatusOK {
-			return nil, 0, fmt.Errorf("%w: %d", ErrStatusCode, resp.StatusCode)
+			return nil, 0, fmt.Errorf("%w: %d - %s", ErrStatusCode, resp.StatusCode, resp.Status)
 		}
 	default:
 		return nil, 0, fmt.Errorf("%w: %s", ErrBadContentType, content)
