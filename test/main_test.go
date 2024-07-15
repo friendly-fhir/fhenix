@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -28,6 +29,10 @@ func init() {
 }
 
 func TestIntegration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
 	format := "progress"
 	verbose := false
 	for _, arg := range os.Args[1:] {
@@ -47,7 +52,7 @@ func TestIntegration(t *testing.T) {
 
 	status := godog.TestSuite{
 		Name:                 "Fhenix",
-		TestSuiteInitializer: InitializeTestSuite(t),
+		TestSuiteInitializer: InitializeTestSuite(t, verbose),
 		ScenarioInitializer:  InitializeScenario(t, verbose),
 		Options:              &opts,
 	}.Run()
@@ -66,33 +71,46 @@ func repoRootDir(t *testing.T) string {
 	return filepath.Clean(filepath.Dir(filepath.Dir(file)))
 }
 
-func run(t *testing.T, cmd string, args ...string) {
+func run(t *testing.T, verbose bool, cmd string, args ...string) (string, error) {
 	t.Helper()
-	t.Logf("Running %s %s", cmd, strings.Join(args, " "))
-	output, err := exec.Command(cmd, args...).CombinedOutput()
-	if err != nil {
-		t.Fatalf("Failed to run command: %v", err)
+	if verbose {
+		t.Logf("calling %s %s", cmd, strings.Join(args, " "))
 	}
-	t.Logf(string(output))
+	var combined strings.Builder
+	command := exec.Command(cmd, args...)
+	if verbose {
+		command.Stdout = io.MultiWriter(os.Stdout, &combined)
+		command.Stderr = io.MultiWriter(os.Stderr, &combined)
+	} else {
+		command.Stdout = &combined
+		command.Stderr = &combined
+	}
+
+	return combined.String(), command.Run()
 }
 
-func InitializeTestSuite(t *testing.T) func(ctx *godog.TestSuiteContext) {
+func InitializeTestSuite(t *testing.T, verbose bool) func(ctx *godog.TestSuiteContext) {
+	t.Helper()
 	dir := t.TempDir()
+	binDir := filepath.Join(dir, "bin")
 	return func(ctx *godog.TestSuiteContext) {
 		ctx.BeforeSuite(func() {
-			t.Setenv("GOPATH", dir)
+			_ = os.MkdirAll(binDir, 0755)
 			t.Setenv("PATH",
-				strings.Join([]string{os.Getenv("PATH"), filepath.Join(dir, "bin")},
+				strings.Join([]string{os.Getenv("PATH"), binDir},
 					string(filepath.ListSeparator)),
 			)
-			t.Logf("Installing fhenix application...")
-			run(t, "go", "install", repoRootDir(t))
+			if verbose {
+				t.Logf("PATH+=%s", binDir)
+				t.Logf("installing fhenix...")
+			}
+			run(t, verbose, "go", "build", "-o", filepath.Join(binDir, "fhenix"), repoRootDir(t))
 		})
 		ctx.AfterSuite(func() {
-			t.Setenv("GOPATH", dir)
-			t.Logf("Cleaning up...")
-			run(t, "go", "clean", "-cache", "-modcache", "-testcache")
-			_ = os.RemoveAll(dir)
+			if verbose {
+				t.Logf("removing %s...", binDir)
+			}
+			_ = os.RemoveAll(binDir)
 		})
 	}
 }
@@ -102,10 +120,17 @@ func InitializeScenario(t *testing.T, verbose bool) func(ctx *godog.ScenarioCont
 	return func(ctx *godog.ScenarioContext) {
 		ctx.Before(func(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
 			t.Setenv("FHIR_CACHE", dir)
+			if verbose {
+				t.Logf("FHIR_CACHE=%s", dir)
+			}
 			return ctx, nil
 		})
 		ctx.After(func(ctx context.Context, sc *godog.Scenario, err error) (context.Context, error) {
-			return ctx, errors.Join(err, os.RemoveAll(dir))
+			if verbose {
+				t.Logf("removing %s...", dir)
+			}
+			_ = os.RemoveAll(dir)
+			return ctx, err
 		})
 		cache := registry.NewCache(dir)
 
@@ -118,6 +143,7 @@ func InitializeScenario(t *testing.T, verbose bool) func(ctx *godog.ScenarioCont
 
 		ctx.Given(`^a timeout of (\d+[a-zA-Z]+)$`, tc.SetTimeout)
 		ctx.Given(`^the cache is empty$`, tc.PurgeCache)
+		ctx.Given(`^the cache contains packages:$`, tc.PrimeCache)
 		ctx.Given(`^the command '(.+)'$`, tc.SetCommand)
 		ctx.Given(`^the registry is '(.+)'$`, tc.SetRegistry)
 
@@ -125,17 +151,35 @@ func InitializeScenario(t *testing.T, verbose bool) func(ctx *godog.ScenarioCont
 
 		ctx.Then(`^the FHIR cache contains packages:$`, tc.HasPackages)
 		ctx.Then(`^the FHIR cache does not contain packages:$`, tc.DoesNotHavePackages)
+		ctx.Then(`^the program exits with status-code (\d+)$`, tc.StatusCodeIs)
+		ctx.Then(`^the program exits with non-(\d+) status-code$`, tc.StatusCodeIsNot)
+		ctx.Then(`^stdout contains '(.+)'$`, tc.StdoutContains)
+		ctx.Then(`^stderr contains '(.+)'$`, tc.StderrContains)
+		ctx.Then(`^stdout does not contain '(.+)'$`, tc.StdoutDoesNotContain)
+		ctx.Then(`^stderr does not contain '(.+)'$`, tc.StderrDoesNotContain)
+		ctx.Then(`^stdout is '(.+)'$`, tc.StdoutIs)
+		ctx.Then(`^stderr is '(.+)'$`, tc.StderrIs)
+		ctx.Then(`^stdout is not '(.+)'$`, tc.StdoutIsNot)
+		ctx.Then(`^stderr is not '(.+)'$`, tc.StderrIsNot)
 	}
 }
 
 type TestCase struct {
-	Timeout  time.Duration
-	Command  []string
-	Result   error
-	Registry string
-	T        *testing.T
-	Verbose  bool
+	// Testing
+	T       *testing.T
+	Verbose bool
 
+	// Setup
+	Command  []string
+	Timeout  time.Duration
+	Registry string
+
+	// Command Output
+	ExitCode int
+	Stdout   string
+	Stderr   string
+
+	// Local Cache
 	cache *registry.Cache
 }
 
@@ -153,6 +197,10 @@ func (tc *TestCase) PurgeCache() error {
 	return os.RemoveAll(path)
 }
 
+func (tc *TestCase) PrimeCache(table *godog.Table) error {
+	return godog.ErrPending
+}
+
 func (tc *TestCase) SetCommand(command string) error {
 	tc.Command = strings.Split(command, " ")
 	return nil
@@ -167,22 +215,44 @@ func (tc *TestCase) ExecuteCommand() error {
 	if len(tc.Command) == 0 {
 		return godog.ErrPending
 	}
-	command := tc.Command
+	cmd := tc.Command
 	if tc.Timeout != 0 {
-		command = append(command, "--timeout", tc.Timeout.String())
+		cmd = append(cmd, "--timeout", tc.Timeout.String())
 	}
 	if tc.Registry != "" {
-		command = append(command, "--registry", tc.Registry)
+		cmd = append(cmd, "--registry", tc.Registry)
 	}
-	command = append(command, "--fhir-cache", tc.cache.Root())
+	cmd = append(cmd, "--fhir-cache", tc.cache.Root())
+	return tc.runCommand(cmd[0], cmd[1:]...)
+}
+
+func (tc *TestCase) runCommand(cmd string, args ...string) error {
 	if tc.Verbose {
-		tc.T.Logf("Running command: %v", strings.Join(command, " "))
+		tc.T.Logf("calling %s %s", cmd, strings.Join(args, " "))
 	}
-	out, err := exec.Command(command[0], command[1:]...).CombinedOutput()
+
+	var stdout strings.Builder
+	var stderr strings.Builder
+	command := exec.Command(cmd, args...)
 	if tc.Verbose {
-		tc.T.Logf(string(out))
+		command.Stdout = io.MultiWriter(os.Stdout, &stdout)
+		command.Stderr = io.MultiWriter(os.Stderr, &stderr)
+	} else {
+		command.Stdout = &stdout
+		command.Stderr = &stderr
 	}
-	return err
+	err := command.Run()
+
+	tc.Stdout = stdout.String()
+	tc.Stderr = stderr.String()
+	if err != nil {
+		if exiterr, ok := err.(*exec.ExitError); ok {
+			tc.ExitCode = exiterr.ExitCode()
+		} else {
+			return err
+		}
+	}
+	return nil
 }
 
 func (tc *TestCase) HasPackages(packages *godog.Table) error {
@@ -209,4 +279,74 @@ func (tc *TestCase) DoesNotHavePackages(packages *godog.Table) error {
 		}
 	}
 	return errors.Join(errs...)
+}
+
+func (tc *TestCase) StatusCodeIs(code int) error {
+	if tc.ExitCode != code {
+		return fmt.Errorf("expected exit code %d, got %d", code, tc.ExitCode)
+	}
+	return nil
+}
+
+func (tc *TestCase) StatusCodeIsNot(code int) error {
+	if tc.ExitCode == code {
+		return fmt.Errorf("expected exit code not to be %d", code)
+	}
+	return nil
+}
+
+func (tc *TestCase) StdoutContains(expected string) error {
+	if !strings.Contains(tc.Stdout, expected) {
+		return fmt.Errorf("expected stdout to contain %q, got %q", expected, tc.Stdout)
+	}
+	return nil
+}
+
+func (tc *TestCase) StderrContains(expected string) error {
+	if !strings.Contains(tc.Stderr, expected) {
+		return fmt.Errorf("expected stderr to contain %q, got %q", expected, tc.Stderr)
+	}
+	return nil
+}
+
+func (tc *TestCase) StdoutDoesNotContain(expected string) error {
+	if strings.Contains(tc.Stdout, expected) {
+		return fmt.Errorf("expected stdout not to contain %q, got %q", expected, tc.Stdout)
+	}
+	return nil
+}
+
+func (tc *TestCase) StderrDoesNotContain(expected string) error {
+	if strings.Contains(tc.Stderr, expected) {
+		return fmt.Errorf("expected stderr not to contain %q, got %q", expected, tc.Stderr)
+	}
+	return nil
+}
+
+func (tc *TestCase) StdoutIs(expected string) error {
+	if tc.Stdout != expected {
+		return fmt.Errorf("expected stdout to be %q, got %q", expected, tc.Stdout)
+	}
+	return nil
+}
+
+func (tc *TestCase) StderrIs(expected string) error {
+	if tc.Stderr != expected {
+		return fmt.Errorf("expected stderr to be %q, got %q", expected, tc.Stderr)
+	}
+	return nil
+}
+
+func (tc *TestCase) StdoutIsNot(expected string) error {
+	if tc.Stdout == expected {
+		return fmt.Errorf("expected stdout not to be %q, got %q", expected, tc.Stdout)
+	}
+	return nil
+}
+
+func (tc *TestCase) StderrIsNot(expected string) error {
+	if tc.Stderr != expected {
+		return fmt.Errorf("expected stderr not to be %q, got %q", expected, tc.Stderr)
+	}
+	return nil
 }
