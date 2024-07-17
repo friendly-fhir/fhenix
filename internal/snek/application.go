@@ -12,6 +12,7 @@ import (
 	"text/template"
 	"unicode"
 
+	"atomicgo.dev/cursor"
 	"github.com/friendly-fhir/fhenix/internal/ansi"
 	"github.com/friendly-fhir/fhenix/internal/dedent"
 	"github.com/spf13/cobra"
@@ -216,6 +217,8 @@ type config struct {
 
 	KeyTerms  []string
 	Variables []string
+
+	ShowCursor bool
 }
 
 type set[T comparable] map[T]struct{}
@@ -308,7 +311,7 @@ func toCobraCommand(cfg *config, command Command) *cobra.Command {
 
 		Args: command.PositionalArgs().positionArg(),
 
-		RunE: toRunFunc(cfg, command),
+		RunE: toRunFunc(cfg, info, command),
 	}
 
 	// Install the command flags and completion functions
@@ -368,7 +371,7 @@ func toID(name string) string {
 	return strings.Map(replaceSpecial, name)
 }
 
-func toRunFunc(cfg *config, command Command) func(cmd *cobra.Command, args []string) error {
+func toRunFunc(cfg *config, info *CommandInfo, command Command) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 		if ctx == nil {
@@ -378,6 +381,12 @@ func toRunFunc(cfg *config, command Command) func(cmd *cobra.Command, args []str
 		ctx = withAppName(ctx, cfg.ApplicationName)
 		ctx = withStdout(ctx, cmd.OutOrStdout())
 		ctx = withStderr(ctx, cmd.ErrOrStderr())
+
+		hideCursor := !info.ShowCursor && IsTerminal(cmd.OutOrStdout())
+		if hideCursor {
+			cursor.Hide()
+			defer cursor.Show()
+		}
 
 		err := command.Run(ctx, args)
 		if err != nil {

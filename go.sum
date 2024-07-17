@@ -1,3 +1,5 @@
+atomicgo.dev/cursor v0.2.0 h1:H6XN5alUJ52FZZUkI7AlJbUc1aW38GWZalpYRPpoPOw=
+atomicgo.dev/cursor v0.2.0/go.mod h1:Lr4ZJB3U7DfPPOkbH7/6TOtJ4vFGHlgj1nc+n900IpU=
 github.com/cpuguy83/go-md2man/v2 v2.0.3/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/friendly-fhir/go-fhir v0.0.0-20240627035249-eacfb3386af5 h1:D6ephfRcx17SrIHrWz2HTDu19Y6Zy1J9YTRyal0ZUnw=
 github.com/friendly-fhir/go-fhir v0.0.0-20240627035249-eacfb3386af5/go.mod h1:dHmN8TwYULp9TAOI1D0cR1RpsIntTM75Y/aUq3v9fY0=

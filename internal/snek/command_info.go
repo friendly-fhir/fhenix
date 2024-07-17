@@ -22,5 +22,6 @@ type CommandInfo struct {
 
 	Version string
 
-	Hidden bool
+	Hidden     bool
+	ShowCursor bool
 }

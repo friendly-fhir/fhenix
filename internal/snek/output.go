@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/friendly-fhir/fhenix/internal/ansi"
+	"golang.org/x/term"
 )
 
 // CommandOut returns the stdout writer from the context, if available, or
@@ -180,4 +181,12 @@ func withStdout(ctx context.Context, stdout io.Writer) context.Context {
 // withStderr sets the stderr writer in the context.
 func withStderr(ctx context.Context, stdout io.Writer) context.Context {
 	return context.WithValue(ctx, stderrKey, stdout)
+}
+
+// IsTerminal returns true if the writer is a terminal.
+func IsTerminal(w io.Writer) bool {
+	if fd, ok := w.(interface{ Fd() uintptr }); ok {
+		return term.IsTerminal(int(fd.Fd()))
+	}
+	return false
 }
