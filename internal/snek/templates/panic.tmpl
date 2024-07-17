@@ -1,0 +1,11 @@
+An internal error occurred.
+
+{{ FormatStrong "Stack Trace" }}
+
+{{ range .StackTrace }}
+{{- FormatQuote ( PrefixLines "> " . ) }}
+{{ end }}
+
+{{- with .Meta.IssueURL }}
+This can be reported at {{ FormatLink . }}
+{{- end }}

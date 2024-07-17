@@ -1,0 +1,57 @@
+{{ FormatCommand (.CommandPath) }}
+{{- with (or .Long .Short) }}
+
+{{ . | trimTrailingWhitespaces }}
+{{- end }}
+
+{{- if .Runnable }}
+
+{{ FormatHeading "USAGE" }}
+{{ Indent 2 (.UseLine) }}
+{{- end }}
+
+{{- if gt (len .Aliases) 0 }}
+
+{{ FormatHeading "ALIASES" }}
+  {{ .NameAndAliases }}
+{{- end }}
+
+{{- if .HasExample }}
+
+{{ FormatHeading "EXAMPLES" }}
+{{ Indent 2 (.Example) }}
+{{- end }}
+
+{{- if .HasAvailableSubCommands }}
+{{ $cmd := . -}}
+{{- range (OrderedGroups .) }}
+{{- $group := . }}
+
+{{ FormatHeading (printf "%s %s" (ToUpper .Title) "COMMANDS") }}
+{{- range $cmd.Commands }}
+{{- if (eq .GroupID $group.ID) }}
+  {{ FormatCommand ( rpad .Name .NamePadding) }} {{ .Short }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{ FormatHeading "ADDITIONAL COMMANDS" }}
+{{- range .Commands }}{{if (or .IsAvailableCommand)}}
+{{- if eq .GroupID ""  }}
+  {{ FormatCommand ( rpad .Name .NamePadding ) }} {{ .Short }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- range Flags . }}
+
+{{ FormatHeading (printf "%s %s" (ToUpper .Name) "FLAGS") }}
+{{ FlagUsages . | trimTrailingWhitespaces }}
+{{- end }}
+
+{{- if .HasAvailableSubCommands }}
+
+Use {{ FormatCall "%s %s" (.CommandPath) "[command] --help" }} for more information about a
+specific sub-command.
+{{- end }}

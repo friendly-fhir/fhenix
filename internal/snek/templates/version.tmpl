@@ -1,0 +1,9 @@
+{{ FormatCommand (printf "%s (version %s)" .CommandPath .Version ) }}
+
+{{ FormatHeading "BUILD DETAILS" }}
+  {{ FormatKeyword "Target" }}       {{ GoOS }}-{{ GoArch }}
+  {{ FormatKeyword "Build Tags" }}   {{ GoBuildTags }}
+  {{ FormatKeyword "Go Version" }}   {{ GoVersion }}
+  {{ FormatKeyword "VCS" }}          {{ VCS }}
+  {{ FormatKeyword "VCS Revision" }} {{ VCSRevision }}
+  {{ FormatKeyword "VCS Time" }}     {{ VCSTime }}
