@@ -96,7 +96,7 @@ func (rc *RunCommand) Run(ctx context.Context, args []string) error {
 		driver.ForceDownload(rc.Force),
 		driver.Parallel(rc.Parallel),
 		driver.Cache(cache),
-		driver.Listeners(NewDriverListener(ctx, rc.Verbose)),
+		driver.Listeners(NewBasicListener(ctx, rc.Verbose)),
 	}
 	driver, err := driver.New(cfg, opts...)
 	if err != nil {

@@ -20,7 +20,7 @@ type Listener struct {
 	driver.BaseListener
 }
 
-func NewDriverListener(ctx context.Context, verbose bool) *Listener {
+func NewBasicListener(ctx context.Context, verbose bool) *Listener {
 	return &Listener{
 		out: snek.CommandOut(ctx),
 	}

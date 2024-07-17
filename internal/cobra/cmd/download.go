@@ -5,6 +5,8 @@ import (
 	"runtime"
 	"time"
 
+	"atomicgo.dev/cursor"
+	"github.com/friendly-fhir/fhenix/driver"
 	"github.com/friendly-fhir/fhenix/internal/snek"
 	"github.com/friendly-fhir/fhenix/registry"
 )
@@ -17,9 +19,10 @@ type DownloadCommand struct {
 	ExcludeDependencies bool
 	Parallel            int
 
-	CacheDir  string
-	Registry  string
-	AuthToken string
+	CacheDir   string
+	Registry   string
+	AuthToken  string
+	NoProgress bool
 
 	snek.BaseCommand
 }
@@ -56,7 +59,22 @@ func (dc *DownloadCommand) Run(ctx context.Context, args []string) error {
 	} else {
 		cache = registry.DefaultCache()
 	}
-	listener := NewDriverListener(ctx, dc.Verbose)
+	var listener driver.Listener
+
+	isTTY := snek.IsTerminal(snek.CommandOut(ctx))
+	var offset *int
+	if isTTY && !dc.NoProgress {
+		l := NewProgressListener(ctx, dc.Verbose)
+		listener = l
+		offset = &l.offset
+	} else {
+		listener = NewBasicListener(ctx, dc.Verbose)
+	}
+	defer func() {
+		if offset != nil {
+			cursor.Down(*offset)
+		}
+	}()
 	cache.AddListener(listener)
 
 	var opts []registry.Option
@@ -96,6 +114,7 @@ func (dc *DownloadCommand) Flags() []*snek.FlagSet {
 	output.String(&dc.CacheDir, "fhir-cache", "", "directory to store the downloaded packages")
 	output.BoolP(&dc.Verbose, "verbose", "v", false, "enable verbose output")
 	output.Bool(&dc.ExcludeDependencies, "exclude-dependencies", false, "include dependencies when downloading the package")
+	output.Bool(&dc.NoProgress, "no-progress", false, "disable progress bar")
 	return []*snek.FlagSet{communication, output}
 }
 
