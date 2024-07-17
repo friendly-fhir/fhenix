@@ -48,7 +48,9 @@ func (o *options) WithCompleter(completer Completer) FlagSetOptions {
 }
 
 func (o *options) MarkHidden() {
-	o.fs.MarkHidden(o.flag)
+	// This function can only error if a flag doesn't exist -- but this option is
+	// only presented to flags that have been created as part of the flagset.
+	_ = o.fs.MarkHidden(o.flag)
 }
 
 func NewFlagSet(name string) *FlagSet {

@@ -98,7 +98,7 @@ func NewApplication(root Command, appinfo *AppInfo) *Application {
 }
 
 // Execute runs the application with the given context.
-func (a *Application) Execute(ctx context.Context) {
+func (a *Application) Execute(ctx context.Context) error {
 	defer func() {
 		if r := recover(); r != nil {
 			Panicf(ctx, "%v", r)
@@ -107,7 +107,7 @@ func (a *Application) Execute(ctx context.Context) {
 		}
 	}()
 
-	a.command.ExecuteContext(ctx)
+	return a.command.ExecuteContext(ctx)
 }
 
 func (a *Application) handlePanic(w io.Writer, r any) {
@@ -235,7 +235,10 @@ func toCobraCommand(cfg *config, command Command) *cobra.Command {
 		result.Flags().AddFlagSet(fs.FlagSet())
 
 		for name, completion := range fs.CompletionFuncs() {
-			result.RegisterFlagCompletionFunc(name, toCompletionFunc(completion))
+			// This can only error if a flag is either not registered, or already
+			// registered -- but this is only populated if the flag exists, and only
+			// set once, here, while building.
+			_ = result.RegisterFlagCompletionFunc(name, toCompletionFunc(completion))
 		}
 	}
 	commandFlags.Set(result, flagsets)
