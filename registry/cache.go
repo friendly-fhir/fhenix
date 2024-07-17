@@ -194,6 +194,7 @@ func (c *Cache) Get(registry, pkg, version string) (*Package, error) {
 		return nil, fmt.Errorf("fhir cache: unknown registry %q", registry)
 	}
 
+	c.listeners.OnCacheHit(registry, pkg, version)
 	p, err := NewPackage(path)
 	if err != nil {
 		return nil, err
