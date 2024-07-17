@@ -3,153 +3,102 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"runtime"
 	"time"
 
 	"github.com/friendly-fhir/fhenix/config"
 	"github.com/friendly-fhir/fhenix/driver"
+	"github.com/friendly-fhir/fhenix/internal/snek"
 	"github.com/friendly-fhir/fhenix/registry"
-	"github.com/spf13/cobra"
 )
 
-type Listener struct {
-	out io.Writer
-	driver.BaseListener
-}
-
-func (l *Listener) BeforeDownload() {
-	fmt.Fprintln(l.out, "[1] Downloading FHIR Packages...")
-}
-
-func (l *Listener) AfterDownload(err error) {
-	if err != nil {
-		fmt.Fprintf(l.out, "[1] Downloading FHIR Packages... Failed: %v\n", err)
-	} else {
-		fmt.Fprintln(l.out, "[1] Downloading FHIR Packages... Succeeded")
-	}
-}
-
-func (l *Listener) BeforeLoadTransform() {
-	fmt.Fprintln(l.out, "[4] Loading Transformations...")
-}
-
-func (l *Listener) AfterLoadTransform(err error) {
-	if err != nil {
-		fmt.Fprintf(l.out, "[4] Loading Transformations... Failed: %v\n", err)
-	} else {
-		fmt.Fprintln(l.out, "[4] Loading Transformations... Succeeded")
-	}
-}
-
-func (l *Listener) BeforeLoadConformance() {
-	fmt.Fprintln(l.out, "[2] Loading Conformance...")
-}
-
-func (l *Listener) AfterLoadConformance(err error) {
-	if err != nil {
-		fmt.Fprintf(l.out, "[2] Loading Conformance... Failed: %v\n", err)
-	} else {
-		fmt.Fprintln(l.out, "[2] Loading Conformance... Succeeded")
-	}
-}
-
-func (l *Listener) BeforeLoadModel() {
-	fmt.Fprintln(l.out, "[3] Loading Model...")
-}
-
-func (l *Listener) AfterLoadModel(err error) {
-	if err != nil {
-		fmt.Fprintf(l.out, "[3] Loading Model... Failed: %v\n", err)
-	} else {
-		fmt.Fprintln(l.out, "[3] Loading Model... Succeeded")
-	}
-}
-
-func (l *Listener) BeforeTransform() {
-	fmt.Fprintln(l.out, "[5] Transforming Model...")
-}
-
-func (l *Listener) OnTransform(output string) {
-	fmt.Fprintf(l.out, "[5] Transforming Model... %s\n", output)
-}
-
-func (l *Listener) AfterTransform(jobs int, err error) {
-	if err != nil {
-		fmt.Fprintf(l.out, "[5] Transforming Model... Failed: %v\n", err)
-	} else {
-		fmt.Fprintln(l.out, "[5] Transforming Model... Succeeded")
-	}
-}
-
-func (l *Listener) OnFetch(registry, pkg, value string, bytes int64) {
-	fmt.Fprintf(l.out, "[1] ... Downloading %s::%s/%s (%d bytes)\n", registry, pkg, value, bytes)
-}
-
-var _ driver.Listener = (*Listener)(nil)
-
-var RunFlags struct {
+type RunCommand struct {
 	Output string
 
 	Parallel  int
 	Force     bool
 	RM        bool
 	FHIRCache string
+	Verbose   bool
 	Timeout   time.Duration
+	snek.BaseCommand
 }
 
-var Run = &cobra.Command{
-	Use:   "run <config file> [--rm] [--output <output directory>] [--fhirig-cache <cache path>] [--timeout <timeout>]",
-	Short: "Run generation",
-	Long:  "Run the generation process",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) != 1 {
-			return cmd.Usage()
-		}
+func (rc *RunCommand) Info() *snek.CommandInfo {
+	return &snek.CommandInfo{
+		Use:     "run <fhenix config> [--rm] [--output <output directory>] [--fhirig-cache <cache path>] [--timeout <timeout>]",
+		Summary: "Run generation",
+		Description: lines(
+			fmt.Sprintf("Run the generation process against the specified %v file", snek.FormatKeyword.Format("fhenix config")),
+			"",
+			"This command will download the relevant FHIR definitions if it is not already cached",
+			"and generate the code based on the configuration provided.",
+		),
+	}
+}
 
-		cfg, err := config.FromFile(args[0])
-		if err != nil {
+func (rc *RunCommand) PositionalArgs() snek.PositionalArgs {
+	return snek.ExactArgs(1)
+}
+
+func (rc *RunCommand) Flags() []*snek.FlagSet {
+	communication := snek.NewFlagSet("Communication")
+	communication.DurationP(&rc.Timeout, "timeout", "t", 0, "Timeout for the download")
+	communication.BoolP(&rc.Force, "force", "f", false, "Force download of FHIR IGs")
+	communication.Int(&rc.Parallel, "parallel", runtime.NumCPU(), "The number of parallel workers to use")
+
+	output := snek.NewFlagSet("Output")
+	output.Bool(&rc.RM, "rm", false, "Remove all contents from the output directory prior to writing")
+	output.StringP(&rc.Output, "output", "o", "", "The output directory to write the generated code to")
+	output.String(&rc.FHIRCache, "fhir-cache", "", "The configuration path to download the FHIR IGs to")
+	output.BoolP(&rc.Verbose, "verbose", "v", false, "Enable verbose output")
+
+	return []*snek.FlagSet{
+		output,
+		communication,
+	}
+}
+
+func (rc *RunCommand) Run(ctx context.Context, args []string) error {
+	if len(args) != 1 {
+		return snek.UsageError("expected exactly one argument")
+	}
+
+	cfg, err := config.FromFile(args[0])
+	if err != nil {
+		return err
+	}
+
+	if rc.RM {
+		if err := os.RemoveAll(cfg.OutputDir); err != nil {
 			return err
 		}
+	}
 
-		if RunFlags.RM {
-			if err := os.RemoveAll(cfg.OutputDir); err != nil {
-				return err
-			}
-		}
-		cache := registry.DefaultCache()
-		if RunFlags.FHIRCache != "" {
-			cache = registry.NewCache(RunFlags.FHIRCache)
-		}
+	cache := registry.DefaultCache()
+	if rc.FHIRCache != "" {
+		cache = registry.NewCache(rc.FHIRCache)
+	}
 
-		driver, err := driver.New(cfg,
-			driver.ForceDownload(RunFlags.Force),
-			driver.Parallel(RunFlags.Parallel),
-			driver.Cache(cache),
-			driver.Listeners(&Listener{out: cmd.OutOrStdout()}),
-		)
-		if err != nil {
-			return err
-		}
-		ctx := cmd.Context()
-		if timeout := RunFlags.Timeout; timeout != 0 {
-			var cancel context.CancelFunc
-			ctx, cancel = context.WithTimeout(ctx, timeout)
-			defer cancel()
-		}
+	if timeout := rc.Timeout; timeout != 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
 
-		return driver.Run(ctx)
-	},
+	opts := []driver.Option{
+		driver.ForceDownload(rc.Force),
+		driver.Parallel(rc.Parallel),
+		driver.Cache(cache),
+		driver.Listeners(NewDriverListener(ctx, rc.Verbose)),
+	}
+	driver, err := driver.New(cfg, opts...)
+	if err != nil {
+		return err
+	}
+
+	return driver.Run(ctx)
 }
 
-func init() {
-	Root.AddCommand(Run)
-	flags := Run.Flags()
-	flags.StringVarP(&RunFlags.Output, "output", "o", "", "The output directory to write the generated code to")
-	flags.BoolVar(&RunFlags.RM, "rm", false, "Remove all contents from the output directory prior to writing")
-	flags.StringVar(&RunFlags.FHIRCache, "fhir-cache", "", "The configuration path to download the FHIR IGs to")
-	flags.BoolVar(&RunFlags.Force, "force", false, "Force download of FHIR IGs")
-	flags.DurationVar(&RunFlags.Timeout, "timeout", 0, "Timeout for the download")
-	flags.IntVar(&RunFlags.Parallel, "parallel", runtime.NumCPU(), "The number of parallel workers to use")
-}
+var _ snek.Command = (*RunCommand)(nil)

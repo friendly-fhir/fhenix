@@ -1,14 +1,19 @@
 package main
 
 import (
-	"os"
+	"context"
 
 	"github.com/friendly-fhir/fhenix/internal/cobra/cmd"
+	"github.com/friendly-fhir/fhenix/internal/snek"
 )
 
 func main() {
-	if err := cmd.Root.Execute(); err != nil {
-		// The error is already logged by Cobra
-		os.Exit(1)
-	}
+	app := snek.NewApplication(&cmd.RootCommand{}, &snek.AppInfo{
+		Website:  "https://friendly-fhir.org",
+		IssueURL: "https://github.com/friendly-fhir/fhenix/issues",
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	app.Execute(ctx)
 }

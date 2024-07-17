@@ -2,16 +2,14 @@ package cmd
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"runtime"
 	"time"
 
+	"github.com/friendly-fhir/fhenix/internal/snek"
 	"github.com/friendly-fhir/fhenix/registry"
-	"github.com/spf13/cobra"
 )
 
-var DownloadFlags struct {
+type DownloadCommand struct {
 	Timeout time.Duration
 	Force   bool
 	Verbose bool
@@ -22,105 +20,79 @@ var DownloadFlags struct {
 	CacheDir  string
 	Registry  string
 	AuthToken string
+
+	snek.BaseCommand
 }
 
-type downloadListener struct {
-	verbose bool
-	registry.BaseCacheListener
-}
-
-func (l *downloadListener) BeforeFetch(registry, pkg, version string) {
-	fmt.Printf("connecting to %s@%s (from %s)\n", pkg, version, registry)
-}
-
-func (l *downloadListener) OnFetch(registry, pkg, version string, data int64) {
-	fmt.Printf("downloading %s@%s (from %s): %d bytes\n", pkg, version, registry, data)
-}
-
-func (l *downloadListener) OnFetchWrite(registry, pkg, version string, data []byte) {
-	if l.verbose {
-		fmt.Printf("* [%s@%s] (from %s): %d bytes...\n", pkg, version, registry, len(data))
+func (dc *DownloadCommand) Info() *snek.CommandInfo {
+	return &snek.CommandInfo{
+		Use:     "download <package> <version>",
+		Summary: "Download FHIR IGs",
+		Description: lines(
+			"Download FHIR Implementation Guides (IGs) from the web",
+		),
 	}
 }
 
-func (l *downloadListener) AfterFetch(registry, pkg, version string, err error) {
-	if err != nil {
-		fmt.Printf("download error: %v\n", err)
+func (dc *DownloadCommand) Run(ctx context.Context, args []string) error {
+	if len(args) != 2 {
+		return snek.UsageError("expected exactly two arguments")
+	}
+
+	pkg, version := args[0], args[1]
+
+	if dc.Timeout != 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, dc.Timeout)
+		defer cancel()
+	}
+	var cache *registry.Cache
+	if dir := dc.CacheDir; dir != "" {
+		cache = registry.NewCache(dir)
 	} else {
-		fmt.Printf("downloaded %s@%s (from %s)\n", pkg, version, registry)
+		cache = registry.DefaultCache()
 	}
-}
+	listener := NewDriverListener(ctx, dc.Verbose)
+	cache.AddListener(listener)
 
-func (l *downloadListener) OnCacheHit(registry, pkg, version string) {
-	fmt.Printf("cache-hit: %s@%s (from %s)\n", pkg, version, registry)
-}
-
-func (l *downloadListener) OnUnpack(registry, pkg, version, file string, data int64) {
-	if l.verbose {
-		fmt.Printf("[%s@%s] %s (from %s): %d bytes\n", pkg, version, file, registry, data)
+	var opts []registry.Option
+	opts = append(opts, registry.URL(dc.Registry))
+	if token := dc.AuthToken; token != "" {
+		opts = append(opts, registry.Auth(registry.StaticTokenSource(token)))
 	}
+
+	client, err := registry.NewClient(ctx, opts...)
+	if err != nil {
+		return err
+	}
+	cache.AddClient("default", client)
+
+	downloader := registry.NewDownloader(cache).Force(dc.Force).Workers(dc.Parallel)
+
+	downloader.Add("default", pkg, version, !dc.ExcludeDependencies)
+	if err := downloader.Start(ctx); err != nil {
+		return err
+	}
+	return nil
 }
 
-var _ registry.CacheListener = (*downloadListener)(nil)
-
-var Download = &cobra.Command{
-	Use:   "download <package> <version>",
-	Short: "Download FHIR IGs",
-	Long:  "Download FHIR Implementation Guides (IGs) from the web",
-	Args:  cobra.ExactArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		pkg, version := args[0], args[1]
-
-		ctx := context.Background()
-		if DownloadFlags.Timeout != 0 {
-			var cancel context.CancelFunc
-			ctx, cancel = context.WithTimeout(cmd.Context(), DownloadFlags.Timeout)
-			defer cancel()
-		}
-		var cache *registry.Cache
-		if dir := DownloadFlags.CacheDir; dir != "" {
-			cache = registry.NewCache(dir)
-		} else {
-			cache = registry.DefaultCache()
-		}
-		listener := &downloadListener{
-			verbose: DownloadFlags.Verbose,
-		}
-		cache.AddListener(listener)
-
-		var opts []registry.Option
-		opts = append(opts, registry.URL(DownloadFlags.Registry))
-		if token := DownloadFlags.AuthToken; token != "" {
-			opts = append(opts, registry.Auth(registry.StaticTokenSource(token)))
-		}
-
-		client, err := registry.NewClient(ctx, opts...)
-		if err != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "error: %v\n", err)
-			os.Exit(1)
-		}
-		cache.AddClient("default", client)
-
-		downloader := registry.NewDownloader(cache).Force(DownloadFlags.Force).Workers(DownloadFlags.Parallel)
-
-		downloader.Add("default", pkg, version, !DownloadFlags.ExcludeDependencies)
-		if err := downloader.Start(ctx); err != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "error: %v\n", err)
-			os.Exit(1)
-		}
-		return nil
-	},
+func (dc *DownloadCommand) PositionalArgs() snek.PositionalArgs {
+	return snek.ExactArgs(2)
 }
 
-func init() {
-	Root.AddCommand(Download)
-	flags := Download.Flags()
-	flags.DurationVarP(&DownloadFlags.Timeout, "timeout", "t", 0, "timeout for the download")
-	flags.BoolVarP(&DownloadFlags.Force, "force", "f", false, "force download even if the package is already cached")
-	flags.StringVar(&DownloadFlags.CacheDir, "fhir-cache", "", "directory to store the downloaded packages")
-	flags.StringVarP(&DownloadFlags.Registry, "registry", "r", "https://packages.simplifier.net", "registry to download the package from")
-	flags.StringVarP(&DownloadFlags.AuthToken, "auth-token", "T", "", "auth token for the registry")
-	flags.BoolVarP(&DownloadFlags.Verbose, "verbose", "v", false, "enable verbose output")
-	flags.BoolVar(&DownloadFlags.ExcludeDependencies, "exclude-dependencies", false, "include dependencies when downloading the package")
-	flags.IntVarP(&DownloadFlags.Parallel, "parallel", "p", runtime.NumCPU(), "number of parallel downloads")
+func (dc *DownloadCommand) Flags() []*snek.FlagSet {
+	communication := snek.NewFlagSet("Communication")
+	communication.DurationP(&dc.Timeout, "timeout", "t", 0, "timeout for the download")
+	communication.BoolP(&dc.Force, "force", "f", false, "force download even if the package is already cached")
+	communication.StringP(&dc.Registry, "registry", "r", "https://packages.simplifier.net", "registry to download the package from")
+	communication.StringP(&dc.AuthToken, "auth-token", "T", "", "auth token for the registry")
+	communication.IntP(&dc.Parallel, "parallel", "p", runtime.NumCPU(), "number of parallel downloads")
+
+	output := snek.NewFlagSet("Output")
+	output.String(&dc.CacheDir, "fhir-cache", "", "directory to store the downloaded packages")
+	output.BoolP(&dc.Verbose, "verbose", "v", false, "enable verbose output")
+	output.Bool(&dc.ExcludeDependencies, "exclude-dependencies", false, "include dependencies when downloading the package")
+	return []*snek.FlagSet{communication, output}
 }
+
+var _ snek.Command = (*DownloadCommand)(nil)

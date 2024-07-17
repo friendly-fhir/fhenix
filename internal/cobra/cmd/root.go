@@ -1,16 +1,37 @@
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/friendly-fhir/fhenix/internal/snek"
+)
 
-var Root = &cobra.Command{
-	Use:   "fhenix",
-	Short: "Fhenix is a lightweight tool for generating code from FHIR StructureDefinitions",
+type RootCommand struct {
+	Verbose bool
+	NoColor bool
+	Output  string
+
+	Hidden bool
+	snek.BaseCommand
 }
 
-func init() {
-	flags := Root.PersistentFlags()
-	flags.StringP("output", "o", "", "The output directory to write the generated code to")
-
-	persistent := Root.PersistentFlags()
-	persistent.String("fhirig-cache", "", "The configuration path to download the FHIR IGs to")
+func (r *RootCommand) Info() *snek.CommandInfo {
+	return &snek.CommandInfo{
+		Use:     "fhenix <command>",
+		Summary: "Fhenix is a lightweight tool for generating code from FHIR StructureDefinitions",
+		Description: lines(
+			"Fhenix is a lightweight tool for generating code from FHIR StructureDefinitions",
+		),
+	}
 }
+
+func (r *RootCommand) Commands() snek.Commands {
+	commands := snek.Commands{}
+	communication := commands.Group("Communication")
+	communication.Add(&DownloadCommand{})
+
+	generation := commands.Group("Generation")
+	generation.Add(&InitCommand{})
+	generation.Add(&RunCommand{})
+	return commands
+}
+
+var _ snek.Command = (*RootCommand)(nil)
