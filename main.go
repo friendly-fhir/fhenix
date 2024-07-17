@@ -9,8 +9,10 @@ import (
 
 func main() {
 	app := snek.NewApplication(&cmd.RootCommand{}, &snek.AppInfo{
-		Website:  "https://friendly-fhir.org",
-		IssueURL: "https://github.com/friendly-fhir/fhenix/issues",
+		Website:   "https://friendly-fhir.org",
+		IssueURL:  "https://github.com/friendly-fhir/fhenix/issues",
+		KeyTerms:  []string{"fhir registry"},
+		Variables: []string{"fhenix config"},
 	})
 
 	ctx, cancel := context.WithCancel(context.Background())

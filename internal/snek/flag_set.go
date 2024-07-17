@@ -277,7 +277,7 @@ func (fs *FlagSet) options(name string) *options {
 }
 
 func (fs *FlagSet) CompletionFuncs() FlagCompleters {
-	return nil
+	return fs.completers
 }
 
 func (fs *FlagSet) FlagSet() *pflag.FlagSet {

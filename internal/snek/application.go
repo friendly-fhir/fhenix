@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"runtime/debug"
 	"strings"
 	"text/template"
 	"unicode"
 
+	"github.com/friendly-fhir/fhenix/internal/ansi"
 	"github.com/friendly-fhir/fhenix/internal/dedent"
 	"github.com/spf13/cobra"
 )
@@ -62,6 +64,14 @@ type AppInfo struct {
 
 	// IssueURL is the URL for the issue tracker for the application.
 	IssueURL string
+
+	// KeyTerms are words that are important in the command, and will be
+	// highlighted in the help output. (Optional)
+	KeyTerms []string
+
+	// Variables are words that are variable inputs in the command, and will be
+	// highlighted in the help output. (Optional)
+	Variables []string
 }
 
 // NewApplication creates a new application from the given root command.
@@ -85,6 +95,9 @@ func NewApplication(root Command, appinfo *AppInfo) *Application {
 		UsageTemplate:   usageTemplateString,
 		HelpTemplate:    helpTemplateString,
 		VersionTemplate: versionTemplateString,
+
+		KeyTerms:  appinfo.KeyTerms,
+		Variables: appinfo.Variables,
 	}
 
 	cobra.AddTemplateFuncs(funcs)
@@ -200,6 +213,69 @@ type config struct {
 	UsageTemplate   string
 	HelpTemplate    string
 	VersionTemplate string
+
+	KeyTerms  []string
+	Variables []string
+}
+
+type set[T comparable] map[T]struct{}
+
+func (s *set[T]) Add(v T) {
+	if *s == nil {
+		*s = make(map[T]struct{})
+	}
+	(*s)[v] = struct{}{}
+}
+
+func setOf[T comparable](vs ...T) set[T] {
+	s := make(map[T]struct{})
+	for _, v := range vs {
+		s[v] = struct{}{}
+	}
+	return s
+}
+
+func (s *set[T]) Insert(vs ...T) set[T] {
+	if *s == nil {
+		*s = make(map[T]struct{})
+	}
+	for _, v := range vs {
+		(*s)[v] = struct{}{}
+	}
+	return *s
+}
+
+func (s *set[T]) Contains(v T) bool {
+	if *s == nil {
+		return false
+	}
+	_, ok := (*s)[v]
+	return ok
+}
+
+func highlight(s string, content set[string], color ansi.Display) string {
+	for k := range content {
+		regex := regexp.MustCompile(fmt.Sprintf("(?i)%s", k))
+		s = string(regex.ReplaceAllFunc([]byte(s), func(b []byte) []byte {
+			return []byte(color.Format(string(b)))
+		}))
+	}
+	return s
+}
+
+func highlightAll(s string, keyterms set[string], variables set[string]) string {
+	s = highlight(s, keyterms, FormatKeyword)
+	s = highlight(s, variables, FormatArg)
+	s = highlightURLs(s)
+	return s
+}
+
+var urlRegex = regexp.MustCompile(`https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)`)
+
+func highlightURLs(s string) string {
+	return string(urlRegex.ReplaceAllFunc([]byte(s), func(b []byte) []byte {
+		return []byte(FormatLink.Format(string(b)))
+	}))
 }
 
 func toCobraCommand(cfg *config, command Command) *cobra.Command {
@@ -208,10 +284,16 @@ func toCobraCommand(cfg *config, command Command) *cobra.Command {
 		panic("Command.Info() must return non-nil information")
 	}
 
+	keyTerms := setOf(cfg.KeyTerms...)
+	keyTerms.Insert(info.KeyTerms...)
+
+	variables := setOf(cfg.Variables...)
+	variables.Insert(info.Variables...)
+
 	result := &cobra.Command{
 		Use:     info.Use,
-		Short:   info.Summary,
-		Long:    info.Description,
+		Short:   highlightAll(info.Summary, keyTerms, variables),
+		Long:    highlightAll(info.Description, keyTerms, variables),
 		Aliases: info.Aliases,
 		Example: dedent.Strings(info.Examples...),
 		Version: info.Version,
@@ -263,7 +345,6 @@ func toCobraCommand(cfg *config, command Command) *cobra.Command {
 	result.SetHelpTemplate(cfg.HelpTemplate)
 	result.SetUsageTemplate(cfg.UsageTemplate)
 	result.SetVersionTemplate(cfg.VersionTemplate)
-
 	return result
 }
 
