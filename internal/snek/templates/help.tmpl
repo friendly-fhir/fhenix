@@ -23,7 +23,7 @@
 {{- end }}
 
 {{- if .HasAvailableSubCommands }}
-{{ $cmd := . -}}
+{{- $cmd := . -}}
 {{- range (OrderedGroups .) }}
 {{- $group := . }}
 
