@@ -27,7 +27,7 @@ type RunCommand struct {
 
 func (rc *RunCommand) Info() *snek.CommandInfo {
 	return &snek.CommandInfo{
-		Use:     "run <fhenix config> [--rm] [--output <output directory>] [--fhirig-cache <cache path>] [--timeout <timeout>]",
+		Use:     "run <fhenix config>",
 		Summary: "Run generation",
 		Description: lines(
 			fmt.Sprintf("Run the generation process against the specified %v file", snek.FormatKeyword.Format("fhenix config")),
@@ -35,6 +35,11 @@ func (rc *RunCommand) Info() *snek.CommandInfo {
 			"This command will download the relevant FHIR definitions if it is not already cached",
 			"and generate the code based on the configuration provided.",
 		),
+		Examples: []string{
+			"fhenix run fhenix.yaml --rm --output ./destination",
+			"fhenix run fhenix.yaml --fhir-cache ~/.fhir --timeout 5m",
+			"fhenix run fhenix.yaml --parallel 4",
+		},
 	}
 }
 

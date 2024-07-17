@@ -31,6 +31,10 @@ func (dc *DownloadCommand) Info() *snek.CommandInfo {
 		Description: lines(
 			"Download FHIR Implementation Guides (IGs) from the web",
 		),
+		Examples: []string{
+			"fhenix download hl7.fhir.r4.core 4.0.1",
+			"fhenix download hl7.fhir.us.core 6.1.0 --force --timeout 1m",
+		},
 	}
 }
 
