@@ -6,19 +6,20 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"time"
 
 	"atomicgo.dev/cursor"
 	"github.com/friendly-fhir/fhenix/driver"
 	"github.com/friendly-fhir/fhenix/internal/ansi"
 	"github.com/friendly-fhir/fhenix/internal/snek"
+	"github.com/friendly-fhir/fhenix/internal/snek/spinner"
 )
-
-var spinner = []string{"⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"}
 
 type TTYListener struct {
 	offset    int
 	downloads map[string]*download
 	m         sync.Mutex
+	spinner   *spinner.Spinner
 
 	verbose bool
 	out     io.Writer
@@ -30,6 +31,7 @@ func NewProgressListener(ctx context.Context, verbose bool) *TTYListener {
 	return &TTYListener{
 		out:     out,
 		verbose: verbose,
+		spinner: spinner.Dots(time.Second),
 	}
 }
 
@@ -52,7 +54,7 @@ func (l *TTYListener) BeforeFetch(registry, pkg, version string) {
 	name := fmt.Sprintf("%s@%s", pkg, version)
 
 	cursor.DownAndClear(offset)
-	fmt.Fprint(l.out, progress(name, 0, 0, 0, nil))
+	fmt.Fprint(l.out, l.progress(name, 0, 0, 0, nil))
 	cursor.Up(offset + 1)
 }
 
@@ -66,7 +68,7 @@ func (l *TTYListener) OnFetch(registry, pkg, version string, data int64) {
 	name := fmt.Sprintf("%s@%s", pkg, version)
 
 	cursor.DownAndClear(download.Offset)
-	fmt.Fprint(l.out, progress(name, 0, data, download.State, nil))
+	fmt.Fprint(l.out, l.progress(name, 0, data, download.State, nil))
 	cursor.Up(download.Offset + 1)
 }
 
@@ -81,7 +83,7 @@ func (l *TTYListener) OnFetchWrite(registry, pkg, version string, data []byte) {
 	name := fmt.Sprintf("%s@%s", pkg, version)
 
 	cursor.DownAndClear(download.Offset)
-	fmt.Fprint(l.out, progress(name, download.Current, download.TotalBytes, download.State, nil))
+	fmt.Fprint(l.out, l.progress(name, download.Current, download.TotalBytes, download.State, nil))
 	cursor.Up(download.Offset + 1)
 }
 
@@ -94,7 +96,7 @@ func (l *TTYListener) AfterFetch(registry, pkg, version string, err error) {
 	name := fmt.Sprintf("%s@%s", pkg, version)
 
 	cursor.DownAndClear(download.Offset)
-	fmt.Fprint(l.out, progress(name, download.Current, download.TotalBytes, download.State, nil))
+	fmt.Fprint(l.out, l.progress(name, download.Current, download.TotalBytes, download.State, nil))
 	cursor.Up(download.Offset + 1)
 }
 
@@ -150,14 +152,14 @@ func cacheProgress(name string) string {
 	return sb.String()
 }
 
-func progress(name string, from, to int64, seq int, err error) string {
+func (l *TTYListener) progress(name string, from, to int64, seq int, err error) string {
 	const (
 		maxLength = 50
 	)
 	var (
 		sb strings.Builder
 	)
-	state := spinner[seq%len(spinner)]
+	state := l.spinner.Update()
 	if from == 0 {
 		state = ansi.FGYellow.Format("-")
 	} else if from == to {
