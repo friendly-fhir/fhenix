@@ -304,6 +304,8 @@ func toCobraCommand(cfg *config, command Command) *cobra.Command {
 		Hidden: info.Hidden,
 
 		DisableAutoGenTag: true,
+		SilenceUsage:      true,
+		SilenceErrors:     true,
 
 		Annotations: map[string]string(info.Annotations),
 
@@ -392,12 +394,12 @@ func toRunFunc(cfg *config, info *CommandInfo, command Command) func(cmd *cobra.
 		if err != nil {
 			if err == errNotImplemented {
 				return cmd.Usage()
-			} else if IsUsageError(err) {
-				return err
 			}
-
 			Errorf(ctx, "%v", err)
-			os.Exit(ExitError)
+			if IsUsageError(err) {
+				_ = cmd.Usage()
+			}
+			return err
 		}
 		return nil
 	}

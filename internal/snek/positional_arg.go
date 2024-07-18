@@ -11,7 +11,15 @@ type PositionalArgs interface {
 type positionalArgs cobra.PositionalArgs
 
 func (pa positionalArgs) positionArg() cobra.PositionalArgs {
-	return cobra.PositionalArgs(pa)
+	return func(cmd *cobra.Command, args []string) error {
+		err := cobra.PositionalArgs(pa)(cmd, args)
+		if err == nil {
+			return nil
+		}
+		Errorf(cmd.Context(), "%v", err)
+		_ = cmd.Usage()
+		return &usageError{Message: err.Error()}
+	}
 }
 
 var (
@@ -53,4 +61,11 @@ func MatchAll(pargs ...PositionalArgs) PositionalArgs {
 		}
 		return nil
 	}))
+}
+
+// Condition returns a [PositionalArgs] that requires the condition to be met.
+func Condition(cond func(args []string) error) PositionalArgs {
+	return positionalArgs(func(cmd *cobra.Command, args []string) error {
+		return cond(args)
+	})
 }
