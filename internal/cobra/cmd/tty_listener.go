@@ -51,10 +51,10 @@ func (l *TTYListener) BeforeFetch(registry, pkg, version string) {
 	l.downloads[key] = &download{
 		Offset: offset,
 	}
-	name := fmt.Sprintf("%s@%s", pkg, version)
+	name := fmt.Sprintf("%s%s%s", ansi.FGBrightWhite.Format(pkg), ansi.FGGray.Format("@"), version)
 
 	cursor.DownAndClear(offset)
-	fmt.Fprint(l.out, l.progress(name, 0, 0, 0, nil))
+	fmt.Fprint(l.out, l.progress(name, 0, 0, nil))
 	cursor.Up(offset + 1)
 }
 
@@ -65,10 +65,10 @@ func (l *TTYListener) OnFetch(registry, pkg, version string, data int64) {
 	download := l.downloads[key]
 	download.TotalBytes = data
 
-	name := fmt.Sprintf("%s@%s", pkg, version)
+	name := fmt.Sprintf("%s%s%s", ansi.FGBrightWhite.Format(pkg), ansi.FGGray.Format("@"), version)
 
 	cursor.DownAndClear(download.Offset)
-	fmt.Fprint(l.out, l.progress(name, 0, data, download.State, nil))
+	fmt.Fprint(l.out, l.progress(name, 0, data, nil))
 	cursor.Up(download.Offset + 1)
 }
 
@@ -78,12 +78,11 @@ func (l *TTYListener) OnFetchWrite(registry, pkg, version string, data []byte) {
 	defer l.m.Unlock()
 	download := l.downloads[key]
 	download.Current += int64(len(data))
-	download.State++
 
-	name := fmt.Sprintf("%s@%s", pkg, version)
+	name := fmt.Sprintf("%s%s%s", ansi.FGBrightWhite.Format(pkg), ansi.FGGray.Format("@"), version)
 
 	cursor.DownAndClear(download.Offset)
-	fmt.Fprint(l.out, l.progress(name, download.Current, download.TotalBytes, download.State, nil))
+	fmt.Fprint(l.out, l.progress(name, download.Current, download.TotalBytes, nil))
 	cursor.Up(download.Offset + 1)
 }
 
@@ -93,10 +92,14 @@ func (l *TTYListener) AfterFetch(registry, pkg, version string, err error) {
 	defer l.m.Unlock()
 	download := l.downloads[key]
 
-	name := fmt.Sprintf("%s@%s", pkg, version)
+	name := fmt.Sprintf("%s%s%s", ansi.FGBrightWhite.Format(pkg), ansi.FGGray.Format("@"), version)
 
 	cursor.DownAndClear(download.Offset)
-	fmt.Fprint(l.out, l.progress(name, download.Current, download.TotalBytes, download.State, nil))
+	if err != nil {
+		fmt.Fprint(l.out, valueProgress(ansi.FGRed.Format("x"), name, "error"))
+	} else {
+		fmt.Fprint(l.out, l.progress(name, download.Current, download.TotalBytes, nil))
+	}
 	cursor.Up(download.Offset + 1)
 }
 
@@ -119,10 +122,10 @@ func (l *TTYListener) OnCacheHit(registry, pkg, version string) {
 	if dl.Current != 0 {
 		return
 	}
-	name := fmt.Sprintf("%s@%s", pkg, version)
+	name := fmt.Sprintf("%s%s%s", ansi.FGBrightWhite.Format(pkg), ansi.FGGray.Format("@"), version)
 
 	cursor.DownAndClear(dl.Offset)
-	fmt.Fprint(l.out, cacheProgress(name))
+	fmt.Fprint(l.out, valueProgress(ansi.FGYellow.Format("✓"), name, "cache"))
 	cursor.Up(dl.Offset + 1)
 }
 
@@ -132,27 +135,26 @@ type download struct {
 	TotalBytes int64
 	Current    int64
 	Offset     int
-	State      int
 }
 
-func cacheProgress(name string) string {
+func valueProgress(state, name, value string) string {
 	const (
 		maxLength = 50
 	)
 	var (
 		sb strings.Builder
 	)
-	state := ansi.FGYellow.Format("✓")
 	fmt.Fprintf(&sb, "[%s] %s", state, name)
 	beginning := ansi.StripFormat(sb.String())
 	if len(beginning) < maxLength {
-		sb.WriteString(strings.Repeat(".", maxLength-len(beginning)))
+		dots := " " + strings.Repeat(".", maxLength-len(beginning))
+		sb.WriteString(ansi.FGGray.Format(dots))
 	}
-	fmt.Fprintf(&sb, " cached\n")
+	fmt.Fprintf(&sb, " %v\n", value)
 	return sb.String()
 }
 
-func (l *TTYListener) progress(name string, from, to int64, seq int, err error) string {
+func (l *TTYListener) progress(name string, from, to int64, err error) string {
 	const (
 		maxLength = 50
 	)
@@ -170,13 +172,9 @@ func (l *TTYListener) progress(name string, from, to int64, seq int, err error) 
 	}
 	fmt.Fprintf(&sb, "[%s] %s", state, name)
 	beginning := ansi.StripFormat(sb.String())
-	if err != nil {
-		fmt.Fprintf(&sb, " error: %v", err)
-		return sb.String()
-	}
-
 	if len(beginning) < maxLength {
-		sb.WriteString(strings.Repeat(".", maxLength-len(beginning)))
+		dots := " " + strings.Repeat(".", maxLength-len(beginning))
+		sb.WriteString(ansi.FGGray.Format(dots))
 	}
 
 	percent := 0
