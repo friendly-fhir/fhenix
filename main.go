@@ -18,5 +18,5 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	_ = app.Execute(ctx)
+	app.Execute(ctx).Exit()
 }

@@ -5,7 +5,6 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"runtime/debug"
 	"strings"
@@ -112,16 +111,31 @@ func NewApplication(root Command, appinfo *AppInfo) *Application {
 }
 
 // Execute runs the application with the given context.
-func (a *Application) Execute(ctx context.Context) error {
+func (a *Application) Execute(ctx context.Context) (code *StatusCode) {
 	defer func() {
 		if r := recover(); r != nil {
 			Panicf(ctx, "%v", r)
 			a.handlePanic(a.command.ErrOrStderr(), r)
-			os.Exit(ExitPanic)
+			cursor.Show()
+
+			code = &StatusCode{
+				Result: PanicError(fmt.Sprintf("%v", r)),
+				Code:   ExitPanic,
+			}
 		}
 	}()
+	defer cursor.Show()
 
-	return a.command.ExecuteContext(ctx)
+	err := a.command.ExecuteContext(ctx)
+	status := ExitSuccess
+	if err != nil {
+		status = ExitError
+	}
+
+	return &StatusCode{
+		Result: err,
+		Code:   status,
+	}
 }
 
 func (a *Application) handlePanic(w io.Writer, r any) {
@@ -145,7 +159,6 @@ func (a *Application) handlePanic(w io.Writer, r any) {
 	if err != nil {
 		panic(err)
 	}
-	os.Exit(ExitPanic)
 }
 
 // SetOut sets the out writer for the application.
