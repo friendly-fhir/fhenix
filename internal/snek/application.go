@@ -311,7 +311,7 @@ func toCobraCommand(cfg *config, command Command) *cobra.Command {
 		Short:   highlightAll(info.Summary, keyTerms, variables),
 		Long:    highlightAll(info.Description, keyTerms, variables),
 		Aliases: info.Aliases,
-		Example: dedent.Strings(info.Examples...),
+		Example: highlightURLs(dedent.Strings(info.Examples...)),
 		Version: info.Version,
 
 		Hidden: info.Hidden,
