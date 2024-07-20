@@ -6,6 +6,6 @@ An internal error occurred.
 {{- FormatQuote ( PrefixLines "> " . ) }}
 {{ end }}
 
-{{- with .Meta.IssueURL }}
+{{- with .Meta.ReportIssueURL }}
 This can be reported at {{ FormatLink . }}
 {{- end }}

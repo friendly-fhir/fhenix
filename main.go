@@ -17,10 +17,11 @@ const (
 func main() {
 	root := cmd.RootCommand{}
 	app := snek.NewApplication(&root, &snek.AppInfo{
-		Website:   "https://friendly-fhir.org",
-		IssueURL:  "https://github.com/friendly-fhir/fhenix/issues",
-		KeyTerms:  []string{"fhenix.yaml"},
-		Variables: []string{"fhenix config", "fhir registry"},
+		Website:        "https://friendly-fhir.org",
+		DocsURL:        "https://friendly-fhir.org/fhenix",
+		ReportIssueURL: "https://github.com/friendly-fhir/fhenix/issues",
+		KeyTerms:       []string{"fhenix.yaml"},
+		Variables:      []string{"fhenix config", "fhir registry"},
 	})
 
 	ctx := context.Background()

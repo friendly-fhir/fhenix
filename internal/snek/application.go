@@ -44,7 +44,7 @@ const (
 type Application struct {
 	name string
 
-	appinfo *AppInfo
+	appInfo *AppInfo
 
 	command *cobra.Command
 
@@ -59,11 +59,15 @@ type AppInfo struct {
 	// the application.
 	Website string
 
-	// GitHubRepository is the URL for the GitHub repository for the application.
-	GitHubRepository string
+	// RepositoryURL is the URL for the repository for the application.
+	RepositoryURL string
 
-	// IssueURL is the URL for the issue tracker for the application.
-	IssueURL string
+	// ReportIssueURL is the URL for the issue tracker for the application.
+	ReportIssueURL string
+
+	// DocsURL is the URL for the documentation for the application, which may be
+	// different from the base Website URL.
+	DocsURL string
 
 	// KeyTerms are words that are important in the command, and will be
 	// highlighted in the help output. (Optional)
@@ -72,41 +76,55 @@ type AppInfo struct {
 	// Variables are words that are variable inputs in the command, and will be
 	// highlighted in the help output. (Optional)
 	Variables []string
+
+	// UserData is an optional (unspecified) piece of data that can be provided
+	// to the application. Default is nil.
+	UserData any
 }
 
 // NewApplication creates a new application from the given root command.
 // This function will panic if any of the commands in the root do not define
 // a Command.Info function that returns non-nil information.
-func NewApplication(root Command, appinfo *AppInfo) *Application {
+func NewApplication(root Command, appInfo *AppInfo) *Application {
 	info := root.Info()
 	if info == nil {
 		panic("Command.Info() must return non-nil information")
 	}
-	if appinfo == nil {
+	if appInfo == nil {
 		panic("meta must not be nil")
 	}
-	if appinfo.Name == "" {
-		appinfo.Name = strings.Split(info.Use, " ")[0]
+	if appInfo.Name == "" {
+		appInfo.Name = strings.Split(info.Use, " ")[0]
 	}
 
 	cfg := &config{
-		ApplicationName: appinfo.Name,
+		ApplicationName: appInfo.Name,
 
 		UsageTemplate:   usageTemplateString,
 		HelpTemplate:    helpTemplateString,
 		VersionTemplate: versionTemplateString,
 
-		KeyTerms:  appinfo.KeyTerms,
-		Variables: appinfo.Variables,
+		KeyTerms:  appInfo.KeyTerms,
+		Variables: appInfo.Variables,
 	}
 
 	cobra.AddTemplateFuncs(funcs)
+	cobra.AddTemplateFuncs(template.FuncMap{
+		"AppName": get(appInfo.Name),
+		"AppInfo": get(appInfo),
+	})
 
 	return &Application{
-		name:          appinfo.Name,
+		name:          appInfo.Name,
 		command:       toCobraCommand(cfg, root),
-		appinfo:       appinfo,
+		appInfo:       appInfo,
 		panicTemplate: panicTemplate,
+	}
+}
+
+func get[T any](v T) func() T {
+	return func() T {
+		return v
 	}
 }
 
@@ -116,7 +134,6 @@ func (a *Application) Execute(ctx context.Context) (code *StatusCode) {
 		if r := recover(); r != nil {
 			Panicf(ctx, "%v", r)
 			a.handlePanic(a.command.ErrOrStderr(), r)
-			cursor.Show()
 
 			code = &StatusCode{
 				Result: PanicError(fmt.Sprintf("%v", r)),
@@ -148,7 +165,7 @@ func (a *Application) handlePanic(w io.Writer, r any) {
 	}{
 		Error:      fmt.Sprintf("%v", r),
 		StackTrace: strings.Split(stack, "\n"),
-		Meta:       a.appinfo,
+		Meta:       a.appInfo,
 	}
 	tmpl := a.panicTemplate
 	if tmpl == nil {
@@ -203,7 +220,12 @@ func (a *Application) SetVersionTemplate(tmpl string) {
 //
 // This function will panic if the template is invalid.
 func (a *Application) SetPanicTemplate(tmpl string) {
-	t, err := template.New("panic").Funcs(funcs).Parse(tmpl)
+	t := template.New("panic").Funcs(funcs).Funcs(template.FuncMap{
+		"AppName": get(a.name),
+		"AppInfo": get(a.appInfo),
+	})
+
+	t, err := t.Parse(tmpl)
 	if err != nil {
 		panic(err)
 	}
