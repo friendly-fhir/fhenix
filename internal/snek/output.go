@@ -109,8 +109,10 @@ func PanicPrefix(ctx context.Context) string {
 // If no application name can be extracted from the context, a default one will
 // be provided.
 func ErrorPrefix(ctx context.Context) string {
-	return ansi.Sprintf("%serror:%s",
+	return ansi.Sprintf("%serror:%s %s:%s",
 		ansi.FGRed,
+		ansi.FGBrightWhite,
+		getAppName(ctx),
 		ansi.Reset,
 	)
 
