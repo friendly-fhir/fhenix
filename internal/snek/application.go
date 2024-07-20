@@ -5,8 +5,6 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
-	"os"
-	"os/signal"
 	"regexp"
 	"runtime/debug"
 	"strings"
@@ -127,10 +125,6 @@ func (a *Application) Execute(ctx context.Context) (code *StatusCode) {
 		}
 	}()
 	defer cursor.Show()
-
-	// Cancel context on interrupt so that in-flight requests can be cleaned up.
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer stop()
 
 	err := a.command.ExecuteContext(ctx)
 	status := ExitSuccess
