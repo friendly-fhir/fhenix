@@ -1,5 +1,17 @@
 package snek
 
+import "strings"
+
+// Lines joins the given strings with newlines.
+func Lines(lines ...string) string {
+	return strings.Join(lines, "\n")
+}
+
+// Examples returns the given examples.
+func Examples(examples ...string) []string {
+	return examples
+}
+
 type CommandInfo struct {
 	// Use is an example usage of the command.
 	// This must be prefixed with the command name.

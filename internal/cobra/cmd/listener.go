@@ -4,15 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/friendly-fhir/fhenix/driver"
 	"github.com/friendly-fhir/fhenix/internal/snek"
 )
-
-func lines(lines ...string) string {
-	return strings.Join(lines, "\n")
-}
 
 type Listener struct {
 	verbose bool

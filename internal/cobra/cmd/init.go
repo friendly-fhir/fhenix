@@ -12,7 +12,7 @@ func (ic *InitCommand) Info() *snek.CommandInfo {
 	return &snek.CommandInfo{
 		Use:     "init [name]",
 		Summary: "Initializes a new fhenix project",
-		Description: lines(
+		Description: snek.Lines(
 			"Initializes a new fhenix project",
 			"",
 			"Creates a new fhenix project at the location specified by [name], if provided, ",

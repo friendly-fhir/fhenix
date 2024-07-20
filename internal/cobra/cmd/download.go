@@ -31,13 +31,13 @@ func (dc *DownloadCommand) Info() *snek.CommandInfo {
 	return &snek.CommandInfo{
 		Use:     "download <package> <version>",
 		Summary: "Download FHIR IGs",
-		Description: lines(
+		Description: snek.Lines(
 			"Download FHIR Implementation Guides (IGs) from the web",
 		),
-		Examples: []string{
+		Examples: snek.Examples(
 			"fhenix download hl7.fhir.r4.core 4.0.1",
 			"fhenix download hl7.fhir.us.core 6.1.0 --force --timeout 1m",
-		},
+		),
 	}
 }
 

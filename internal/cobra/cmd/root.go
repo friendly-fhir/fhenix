@@ -16,14 +16,14 @@ func (r *RootCommand) Info() *snek.CommandInfo {
 	return &snek.CommandInfo{
 		Use:     "fhenix <command>",
 		Summary: "Fhenix is a lightweight tool for generating code from FHIR StructureDefinitions",
-		Description: lines(
+		Description: snek.Lines(
 			"Fhenix is a lightweight tool for generating code from FHIR StructureDefinitions",
 		),
-		Examples: []string{
+		Examples: snek.Examples(
 			"fhenix init",
 			"fhenix download hl7.fhir.r4.core 4.0.1 --registry https://packages.simplifier.net",
 			"fhenix run fhenix.yaml --parallel 4",
-		},
+		),
 	}
 }
 
