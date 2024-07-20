@@ -45,7 +45,7 @@ func (f *Flag) MarkRequired(required bool) *Flag {
 
 // MarkDeprecated marks the flag as deprecated.
 func (f *Flag) MarkDeprecated(message string) *Flag {
-	f.fs.fs.MarkDeprecated(f.flag.Name, message)
+	_ = f.fs.fs.MarkDeprecated(f.flag.Name, message)
 	return f
 }
 
