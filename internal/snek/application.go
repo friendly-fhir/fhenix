@@ -285,19 +285,19 @@ func highlight(s string, content set[string], color ansi.Display) string {
 	return s
 }
 
-func highlightAll(s string, keyterms set[string], variables set[string]) string {
-	s = highlight(s, keyterms, FormatKeyword)
-	s = highlight(s, variables, FormatArg)
-	s = highlightURLs(s)
-	return s
-}
-
 var urlRegex = regexp.MustCompile(`https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)`)
 
 func highlightURLs(s string) string {
 	return string(urlRegex.ReplaceAllFunc([]byte(s), func(b []byte) []byte {
 		return []byte(FormatLink.Format(string(b)))
 	}))
+}
+
+func highlightAll(s string, keyterms set[string], variables set[string]) string {
+	s = highlight(s, keyterms, FormatKeyword)
+	s = highlight(s, variables, FormatArg)
+	s = highlightURLs(s)
+	return s
 }
 
 func toCobraCommand(cfg *config, command Command) *cobra.Command {
@@ -345,6 +345,10 @@ func toCobraCommand(cfg *config, command Command) *cobra.Command {
 			// registered -- but this is only populated if the flag exists, and only
 			// set once, here, while building.
 			_ = result.RegisterFlagCompletionFunc(name, toCompletionFunc(completion))
+		}
+
+		for _, transform := range fs.transforms {
+			transform(result)
 		}
 	}
 	commandFlags.Set(result, flagsets)

@@ -7,11 +7,47 @@ import (
 	"time"
 
 	"github.com/friendly-fhir/fhenix/internal/ansi"
+	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
 
 // FlagCompleters is a map of completion functions for flags.
 type FlagCompleters map[string]Completer
+
+// Flag is an interface for setting options on a flag.
+type Flag struct {
+	flag       *pflag.Flag
+	fs         *FlagSet
+	completers *FlagCompleters
+}
+
+// SetCompleter sets the completer for the flag.
+func (f *Flag) SetCompleter(completer Completer) *Flag {
+	(*f.completers)[f.flag.Name] = completer
+	return f
+}
+
+// MarkHidden marks the flag as hidden.
+func (f *Flag) MarkHidden() *Flag {
+	// This function can only error if a flag doesn't exist -- but this option is
+	// only presented to flags that have been created as part of the flagset.
+	_ = f.fs.fs.MarkHidden(f.flag.Name)
+	return f
+}
+
+// MarkRequired marks the flag as required.
+func (f *Flag) MarkRequired(required bool) *Flag {
+	f.fs.transforms = append(f.fs.transforms, func(cmd *cobra.Command) {
+		_ = cmd.MarkFlagRequired(f.flag.Name)
+	})
+	return f
+}
+
+// MarkDeprecated marks the flag as deprecated.
+func (f *Flag) MarkDeprecated(message string) *Flag {
+	f.fs.fs.MarkDeprecated(f.flag.Name, message)
+	return f
+}
 
 // FlagSet is a wrapper around pflag.FlagSet that provides a more fluent API for
 // defining flags.
@@ -21,38 +57,16 @@ type FlagSet struct {
 	name string
 
 	fs *pflag.FlagSet
+
+	transforms []func(cmd *cobra.Command)
 }
 
+// FlagSets returns a slice of FlagSetss.
 func FlagSets(fs ...*FlagSet) []*FlagSet {
 	return fs
 }
 
-// FlagSetOptions is an interface for setting options on a flag.
-type FlagSetOptions interface {
-	// WithCompleter sets a completion function for the flag.
-	WithCompleter(completer Completer) FlagSetOptions
-
-	// MarkHidden marks the flag as hidden.
-	MarkHidden()
-}
-
-type options struct {
-	fs         *pflag.FlagSet
-	completers *FlagCompleters
-	flag       string
-}
-
-func (o *options) WithCompleter(completer Completer) FlagSetOptions {
-	(*o.completers)[o.flag] = completer
-	return o
-}
-
-func (o *options) MarkHidden() {
-	// This function can only error if a flag doesn't exist -- but this option is
-	// only presented to flags that have been created as part of the flagset.
-	_ = o.fs.MarkHidden(o.flag)
-}
-
+// NewFlagSet creates a new FlagSet with the specified name.
 func NewFlagSet(name string) *FlagSet {
 	return &FlagSet{
 		name: name,
@@ -62,224 +76,289 @@ func NewFlagSet(name string) *FlagSet {
 	}
 }
 
-func (fs *FlagSet) String(out *string, name, value, usage string) FlagSetOptions {
+// RequireTogether marks the flags as required together.
+func (fs *FlagSet) RequireTogether(flags ...*Flag) {
+	fs.transforms = append(fs.transforms, func(cmd *cobra.Command) {
+		var labels []string
+		for _, flag := range flags {
+			labels = append(labels, flag.flag.Name)
+		}
+		cmd.MarkFlagsRequiredTogether(labels...)
+	})
+}
+
+// RequireOneOf marks the flags as requiring at least one of them to be set.
+func (fs *FlagSet) RequireOneOf(flags ...*Flag) {
+	fs.transforms = append(fs.transforms, func(cmd *cobra.Command) {
+		labels := make([]string, 0, len(flags))
+		for _, flag := range flags {
+			labels = append(labels, flag.flag.Name)
+		}
+		cmd.MarkFlagsOneRequired(labels...)
+	})
+}
+
+// MarkMutuallyExclusive marks the flags as mutually exclusive.
+func (fs *FlagSet) MarkMutuallyExclusive(flags ...*Flag) {
+	fs.transforms = append(fs.transforms, func(cmd *cobra.Command) {
+		labels := make([]string, 0, len(flags))
+		for _, flag := range flags {
+			labels = append(labels, flag.flag.Name)
+		}
+		cmd.MarkFlagsMutuallyExclusive(labels...)
+	})
+}
+
+// String defines a string flag with the specified name, default value, and
+// usage string.
+func (fs *FlagSet) String(out *string, name, value, usage string) *Flag {
 	fs.fs.StringVar(out, name, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) StringP(out *string, name, shorthand, value, usage string) FlagSetOptions {
+// StringP defines a string flag with the specified name, shorthand, default
+// value, and usage string.
+func (fs *FlagSet) StringP(out *string, name, shorthand, value, usage string) *Flag {
 	fs.fs.StringVarP(out, name, shorthand, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Int(out *int, name string, value int, usage string) FlagSetOptions {
+// Int defines an int flag with the specified name, default value, and usage
+// string.
+func (fs *FlagSet) Int(out *int, name string, value int, usage string) *Flag {
 	fs.fs.IntVar(out, name, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) IntP(out *int, name, shorthand string, value int, usage string) FlagSetOptions {
+// IntP defines an int flag with the specified name, shorthand, default value,
+// and usage string.
+func (fs *FlagSet) IntP(out *int, name, shorthand string, value int, usage string) *Flag {
 	fs.fs.IntVarP(out, name, shorthand, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Int8(out *int8, name string, value int8, usage string) FlagSetOptions {
+// Int8 defines an int8 flag with the specified name, default value, and usage
+// string.
+func (fs *FlagSet) Int8(out *int8, name string, value int8, usage string) *Flag {
 	fs.fs.Int8Var(out, name, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Int8P(out *int8, name, shorthand string, value int8, usage string) FlagSetOptions {
+// Int8P defines an int8 flag with the specified name, shorthand, default value,
+// and usage string.
+func (fs *FlagSet) Int8P(out *int8, name, shorthand string, value int8, usage string) *Flag {
 	fs.fs.Int8VarP(out, name, shorthand, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Int16(out *int16, name string, value int16, usage string) FlagSetOptions {
+// Int16 defines an int16 flag with the specified name, default value, and usage
+// string.
+func (fs *FlagSet) Int16(out *int16, name string, value int16, usage string) *Flag {
 	fs.fs.Int16Var(out, name, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Int16P(out *int16, name, shorthand string, value int16, usage string) FlagSetOptions {
+// Int16P defines an int16 flag with the specified name, shorthand, default value,
+// and usage string.
+func (fs *FlagSet) Int16P(out *int16, name, shorthand string, value int16, usage string) *Flag {
 	fs.fs.Int16VarP(out, name, shorthand, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Int32(out *int32, name string, value int32, usage string) FlagSetOptions {
+// Int32 defines an int32 flag with the specified name, default value, and usage
+// string.
+func (fs *FlagSet) Int32(out *int32, name string, value int32, usage string) *Flag {
 	fs.fs.Int32Var(out, name, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Int32P(out *int32, name, shorthand string, value int32, usage string) FlagSetOptions {
+// Int32P defines an int32 flag with the specified name, shorthand, default value,
+// and usage string.
+func (fs *FlagSet) Int32P(out *int32, name, shorthand string, value int32, usage string) *Flag {
 	fs.fs.Int32VarP(out, name, shorthand, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Int64(out *int64, name string, value int64, usage string) FlagSetOptions {
+// Int64 defines an int64 flag with the specified name, default value, and usage
+// string.
+func (fs *FlagSet) Int64(out *int64, name string, value int64, usage string) *Flag {
 	fs.fs.Int64Var(out, name, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Int64P(out *int64, name, shorthand string, value int64, usage string) FlagSetOptions {
+// Int64P defines an int64 flag with the specified name, shorthand, default value,
+// and usage string.
+func (fs *FlagSet) Int64P(out *int64, name, shorthand string, value int64, usage string) *Flag {
 	fs.fs.Int64VarP(out, name, shorthand, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Uint(out *uint, name string, value uint, usage string) FlagSetOptions {
+// Uint defines a uint flag with the specified name, default value, and usage
+// string.
+func (fs *FlagSet) Uint(out *uint, name string, value uint, usage string) *Flag {
 	fs.fs.UintVar(out, name, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) UintP(out *uint, name, shorthand string, value uint, usage string) FlagSetOptions {
+// UintP defines a uint flag with the specified name, shorthand, default value,
+// and usage string.
+func (fs *FlagSet) UintP(out *uint, name, shorthand string, value uint, usage string) *Flag {
 	fs.fs.UintVarP(out, name, shorthand, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Uint8(out *uint8, name string, value uint8, usage string) FlagSetOptions {
+// Uint8 defines a uint8 flag with the specified name, default value, and usage
+// string.
+func (fs *FlagSet) Uint8(out *uint8, name string, value uint8, usage string) *Flag {
 	fs.fs.Uint8Var(out, name, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Uint8P(out *uint8, name, shorthand string, value uint8, usage string) FlagSetOptions {
+// Uint8P defines a uint8 flag with the specified name, shorthand, default value,
+// and usage string.
+func (fs *FlagSet) Uint8P(out *uint8, name, shorthand string, value uint8, usage string) *Flag {
 	fs.fs.Uint8VarP(out, name, shorthand, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Uint16(out *uint16, name string, value uint16, usage string) FlagSetOptions {
+// Uint16 defines a uint16 flag with the specified name, default value, and usage
+// string.
+func (fs *FlagSet) Uint16(out *uint16, name string, value uint16, usage string) *Flag {
 	fs.fs.Uint16Var(out, name, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Uint16P(out *uint16, name, shorthand string, value uint16, usage string) FlagSetOptions {
+// Uint16P defines a uint16 flag with the specified name, shorthand, default value,
+// and usage string.
+func (fs *FlagSet) Uint16P(out *uint16, name, shorthand string, value uint16, usage string) *Flag {
 	fs.fs.Uint16VarP(out, name, shorthand, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Uint32(out *uint32, name string, value uint32, usage string) FlagSetOptions {
+// Uint32 defines a uint32 flag with the specified name, default value, and usage
+// string.
+func (fs *FlagSet) Uint32(out *uint32, name string, value uint32, usage string) *Flag {
 	fs.fs.Uint32Var(out, name, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Uint32P(out *uint32, name, shorthand string, value uint32, usage string) FlagSetOptions {
+// Uint32P defines a uint32 flag with the specified name, shorthand, default value,
+// and usage string.
+func (fs *FlagSet) Uint32P(out *uint32, name, shorthand string, value uint32, usage string) *Flag {
 	fs.fs.Uint32VarP(out, name, shorthand, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Uint64(out *uint64, name string, value uint64, usage string) FlagSetOptions {
+// Uint64 defines a uint64 flag with the specified name, default value, and usage
+// string.
+func (fs *FlagSet) Uint64(out *uint64, name string, value uint64, usage string) *Flag {
 	fs.fs.Uint64Var(out, name, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Uint64P(out *uint64, name, shorthand string, value uint64, usage string) FlagSetOptions {
+// Uint64P defines a uint64 flag with the specified name, shorthand, default value,
+// and usage string.
+func (fs *FlagSet) Uint64P(out *uint64, name, shorthand string, value uint64, usage string) *Flag {
 	fs.fs.Uint64VarP(out, name, shorthand, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Bool(out *bool, name string, value bool, usage string) FlagSetOptions {
+// Bool defines a bool flag with the specified name, default value, and usage
+// string.
+func (fs *FlagSet) Bool(out *bool, name string, value bool, usage string) *Flag {
 	fs.fs.BoolVar(out, name, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) BoolP(out *bool, name, shorthand string, value bool, usage string) FlagSetOptions {
+// BoolP defines a bool flag with the specified name, shorthand, default value,
+// and usage string.
+func (fs *FlagSet) BoolP(out *bool, name, shorthand string, value bool, usage string) *Flag {
 	fs.fs.BoolVarP(out, name, shorthand, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Float64(out *float64, name string, value float64, usage string) FlagSetOptions {
+// Float64 defines a float64 flag with the specified name, default value, and
+// usage string.
+func (fs *FlagSet) Float64(out *float64, name string, value float64, usage string) *Flag {
 	fs.fs.Float64Var(out, name, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Float64P(out *float64, name, shorthand string, value float64, usage string) FlagSetOptions {
+// Float64P defines a float64 flag with the specified name, shorthand, default
+// value, and usage string.
+func (fs *FlagSet) Float64P(out *float64, name, shorthand string, value float64, usage string) *Flag {
 	fs.fs.Float64VarP(out, name, shorthand, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Duration(out *time.Duration, name string, value time.Duration, usage string) FlagSetOptions {
+// Duration defines a time.Duration flag with the specified name, default value,
+// and usage string.
+func (fs *FlagSet) Duration(out *time.Duration, name string, value time.Duration, usage string) *Flag {
 	fs.fs.DurationVar(out, name, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) DurationP(out *time.Duration, name, shorthand string, value time.Duration, usage string) FlagSetOptions {
+// DurationP defines a time.Duration flag with the specified name, shorthand,
+// default value, and usage string.
+func (fs *FlagSet) DurationP(out *time.Duration, name, shorthand string, value time.Duration, usage string) *Flag {
 	fs.fs.DurationVarP(out, name, shorthand, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) StringSlice(out *[]string, name string, value []string, usage string) FlagSetOptions {
+// StringSlice defines a string slice flag with the specified name, default
+// value, and usage string.
+func (fs *FlagSet) StringSlice(out *[]string, name string, value []string, usage string) *Flag {
 	fs.fs.StringSliceVar(out, name, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) StringSliceP(out *[]string, name, shorthand string, value []string, usage string) FlagSetOptions {
+// StringSliceP defines a string slice flag with the specified name, shorthand,
+// default value, and usage string.
+func (fs *FlagSet) StringSliceP(out *[]string, name, shorthand string, value []string, usage string) *Flag {
 	fs.fs.StringSliceVarP(out, name, shorthand, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) IntSlice(out *[]int, name string, value []int, usage string) FlagSetOptions {
+// IntSlice defines an int slice flag with the specified name, default value,
+// and usage string.
+func (fs *FlagSet) IntSlice(out *[]int, name string, value []int, usage string) *Flag {
 	fs.fs.IntSliceVar(out, name, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) IntSliceP(out *[]int, name, shorthand string, value []int, usage string) FlagSetOptions {
+// IntSliceP defines an int slice flag with the specified name, shorthand,
+// default value, and usage string.
+func (fs *FlagSet) IntSliceP(out *[]int, name, shorthand string, value []int, usage string) *Flag {
 	fs.fs.IntSliceVarP(out, name, shorthand, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) UintSlice(out *[]uint, name string, value []uint, usage string) FlagSetOptions {
+func (fs *FlagSet) UintSlice(out *[]uint, name string, value []uint, usage string) *Flag {
 	fs.fs.UintSliceVar(out, name, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) UintSliceP(out *[]uint, name, shorthand string, value []uint, usage string) FlagSetOptions {
+func (fs *FlagSet) UintSliceP(out *[]uint, name, shorthand string, value []uint, usage string) *Flag {
 	fs.fs.UintSliceVarP(out, name, shorthand, value, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) Var(name string, value pflag.Value, usage string) FlagSetOptions {
+func (fs *FlagSet) Var(name string, value pflag.Value, usage string) *Flag {
 	fs.fs.Var(value, name, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-func (fs *FlagSet) VarP(value pflag.Value, name, shorthand, usage string) FlagSetOptions {
+func (fs *FlagSet) VarP(value pflag.Value, name, shorthand, usage string) *Flag {
 	fs.fs.VarP(value, name, shorthand, usage)
-	return fs.options(name)
+	return fs.flag(name)
 }
 
-type funcFlag func(string) error
-
-func (fn funcFlag) Set(s string) error {
-	return fn(s)
-}
-
-func (fn funcFlag) Type() string {
-	return "string"
-}
-
-func (fn funcFlag) String() string {
-	return ""
-}
-
-var _ pflag.Value = (*funcFlag)(nil)
-
-func (fs *FlagSet) Func(name, usage string, fn func(string) error) FlagSetOptions {
-	fs.fs.Var(funcFlag(fn), name, usage)
-	return fs.options(name)
-}
-
-func (fs *FlagSet) FuncP(name, shorthand, usage string, fn func(string) error) FlagSetOptions {
-	fs.fs.VarP(funcFlag(fn), name, shorthand, usage)
-	return fs.options(name)
-}
-
-func (fs *FlagSet) options(name string) *options {
-	return &options{
-		completers: &fs.completers,
-		flag:       name,
-		fs:         fs.fs,
-	}
-}
-
+// CompletionFuncs returns the completion functions for the flags in the FlagSet.
 func (fs *FlagSet) CompletionFuncs() FlagCompleters {
 	return fs.completers
 }
 
+// FlagSet returns the underlying pflag.FlagSet.
 func (fs *FlagSet) FlagSet() *pflag.FlagSet {
 	return fs.fs
 }
@@ -293,6 +372,14 @@ func (f *FlagSet) Name() string {
 // in the FlagSet.
 func (f *FlagSet) FlagUsages() string {
 	return f.FormattedFlagUsages(nil)
+}
+
+func (fs *FlagSet) flag(name string) *Flag {
+	return &Flag{
+		completers: &fs.completers,
+		flag:       fs.fs.Lookup(name),
+		fs:         fs,
+	}
 }
 
 // FormatOptions is used to configure the formatting of the flag usage.
