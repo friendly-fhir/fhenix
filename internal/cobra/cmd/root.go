@@ -9,7 +9,6 @@ type RootCommand struct {
 	NoColor bool
 	Output  string
 
-	Hidden bool
 	snek.BaseCommand
 }
 
@@ -30,8 +29,8 @@ func (r *RootCommand) Info() *snek.CommandInfo {
 
 func (r *RootCommand) Commands() snek.Commands {
 	commands := snek.Commands{}
-	communication := commands.Group("Communication")
-	communication.Add(&DownloadCommand{})
+	registry := commands.Group("Registry")
+	registry.Add(&DownloadCommand{})
 
 	generation := commands.Group("Generation")
 	generation.Add(&InitCommand{})
