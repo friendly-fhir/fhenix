@@ -53,6 +53,10 @@ jobs:
         run: |
           cp -r ./jsonschema "${{ steps.metadata.outputs.site-dir }}/jsonschema"
 
+      - name: Create CNAME record
+        run: |
+          echo "friendly-fhir.org" > "${{ steps.metadata.outputs.site-dir }}/CNAME"
+
       - name: Upload Pages Artifact
         id: upload
         uses: actions/upload-pages-artifact@v3
