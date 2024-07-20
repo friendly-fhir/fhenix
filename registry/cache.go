@@ -127,6 +127,7 @@ func (c *Cache) ForceFetch(ctx context.Context, registry, pkg, version string) e
 	c.listeners.BeforeFetch(registry, pkg, version)
 	content, size, err := client.Fetch(ctx, pkg, version)
 	if err != nil {
+		c.listeners.AfterFetch(registry, pkg, version, err)
 		return err
 	}
 	defer content.Close()
