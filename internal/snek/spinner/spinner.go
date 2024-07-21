@@ -33,7 +33,7 @@ func New(total time.Duration, frames ...string) *Spinner {
 }
 
 func Dots(cycleTime time.Duration) *Spinner {
-	return New(cycleTime, "⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷")
+	return New(cycleTime, "⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾")
 }
 
 func Lines(cycleTime time.Duration) *Spinner {
