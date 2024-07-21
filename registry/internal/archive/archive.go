@@ -61,11 +61,14 @@ func New(r io.Reader, opts ...Option) *Archive {
 // Unpack visits each file in the archive, calling the provided function
 // with the name and file reader.
 func (a *Archive) Unpack(visitor Unpacker) error {
-	gzipReader, err := gzip.NewReader(a.reader)
+	var err error
+	var reader io.ReadCloser
+	reader, err = gzip.NewReader(a.reader)
 	if err != nil {
-		return err
+		reader = io.NopCloser(a.reader)
 	}
-	tarReader := tar.NewReader(gzipReader)
+	defer reader.Close()
+	tarReader := tar.NewReader(reader)
 	for {
 		header, err := tarReader.Next()
 		if err == io.EOF {
