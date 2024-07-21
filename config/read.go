@@ -49,6 +49,9 @@ func FromBytes(bytes []byte, options ...Option) (*Config, error) {
 }
 
 func from(data []byte, conf *opts.Options) (*Config, error) {
+	const (
+		supportedVersion = 1
+	)
 	type version struct {
 		Version int `yaml:"version"`
 	}
@@ -59,6 +62,9 @@ func from(data []byte, conf *opts.Options) (*Config, error) {
 	switch v.Version {
 	case 1:
 		return fromV1(data, conf)
+	}
+	if v.Version < supportedVersion {
+		return nil, fmt.Errorf("%w: version '%d' is obsolete, and no longer suoported", ErrInvalidVersion, v.Version)
 	}
 	return nil, fmt.Errorf("%w: version '%d' is not supported", ErrInvalidVersion, v.Version)
 }
