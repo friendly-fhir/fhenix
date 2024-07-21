@@ -1,0 +1,190 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "definitions": {
+    "filter": {
+      "type": "object",
+      "description": "A filter that is used to determine which files are included in the transformation.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "The type of file to include in the transformation.",
+          "enum": ["StructureDefinition", "CodeSystem", "ValueSet"],
+          "default": "StructureDefinition"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the FHIR resource that is being filtered.",
+          "format": "regex"
+        },
+        "url": {
+          "type": "string",
+          "description": "The URL of the FHIR resource that is being filtered."
+        },
+        "package": {
+          "type": "string",
+          "description": "The name of the package that is being filtered.",
+          "format": "regex"
+        },
+        "source": {
+          "type": "string",
+          "description": "The source of the FHIR resource that is being filtered.",
+          "format": "regex"
+        },
+        "condition": {
+          "type": "string",
+          "description": "An arbitrary filter that uses template filtering syntax."
+        }
+      },
+      "required": ["type"]
+    },
+    "transform": {
+      "type": "object",
+      "description": "A transformation that is being applied to contents within a FHIR package.",
+      "properties": {
+        "include": {
+          "type": "array",
+          "description": "The filters that are used to determine which FHIR entities are included in the transformation.",
+          "items": {
+            "$ref": "#/definitions/filter"
+          }
+        },
+        "exclude": {
+          "type": "array",
+          "description": "The filters that are used to determine which FHIR entities are excluded from the transformation. If a FHIR entity matches any of the exclude filters, it will not be included in the transformation, even if it matches an include filter.",
+          "items": {
+            "$ref": "#/definitions/filter"
+          }
+        },
+        "output-path": {
+          "type": "string",
+          "description": "The output path for the transformation, as a template text. This is used to determine the output path for the files that are generated.",
+          "format": "file-path"
+        },
+        "funcs": {
+          "type": "object",
+          "description": "The functions that are used to transform the input definitions into the output format.",
+          "additionalItems": true,
+          "additionalProperties": {
+            "type": "string",
+            "format": "file-path"
+          }
+        },
+        "templates": {
+          "type": "object",
+          "description": "The templates that are used to generate the output files. Several template names are builtin to the implementation, but may be replaced by the user.",
+          "properties": {
+            "header": {
+              "type": "string",
+              "description": "A filepath to a header template. This template will be expanded at the start of each output-file, before the main generated content.",
+              "format": "file-path"
+            },
+            "footer": {
+              "type": "string",
+              "description": "A filepath to a footer template. This template will be expanded at the end of each output-file, after the main generated content.",
+              "format": "file-path"
+            },
+            "type": {
+              "type": "string",
+              "description": "A filepath to a template expanded on each matched type.",
+              "format": "file-path"
+            },
+            "code-system": {
+              "type": "string",
+              "description": "A filepath to a template expanded on each matched code system.",
+              "format": "file-path"
+            },
+            "value-set": {
+              "type": "string",
+              "description": "A filepath to a template expanded on each matched value set.",
+              "format": "file-path"
+            },
+            "main": {
+              "type": "string",
+              "description": "Path to the main template file.",
+              "format": "file-path"
+            }
+          },
+          "additionalItems": true,
+          "additionalProperties": {
+            "type": "string",
+            "format": "file-path"
+          }
+        }
+      }
+    }
+  },
+  "properties": {
+    "version": {
+      "type": "integer",
+      "description": "The version of the schema. This is used to ensure that the schema is compatible with the version of the tool that is using it.",
+      "const": 1
+    },
+    "input": {
+      "type": "object",
+      "description": "The package that is being used to drive this generation. Packages are references to Simplifier.net packages.",
+      "properties": {
+        "package": {
+          "type": "object",
+          "description": "The package that is being used to drive this generation. Packages are references to Simplifier.net packages.",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The name of the package.",
+              "minLength": 1
+            },
+            "version": {
+              "type": "string",
+              "description": "The version of the package.",
+              "minLength": 1
+            },
+            "path": {
+              "type": "string",
+              "description": "The path to the package."
+            }
+          },
+          "required": ["name", "version"],
+          "additionalItems": false
+        },
+        "include-dependencies": {
+          "type": "boolean",
+          "description": "Whether to include dependencies in the package.",
+          "default": false
+        }
+      },
+      "required": ["package"]
+    },
+    "mode": {
+      "type": "string",
+      "description": "The mode of the template transformation. This can be either 'text' or 'html'.",
+      "enum": ["text", "html"],
+      "default": "text"
+    },
+    "root-dir": {
+      "type": "string",
+      "description": "The root directory for the output files. This is used to determine the output path for the files that are generated.",
+      "default": "."
+    },
+    "output-dir": {
+      "type": "string",
+      "description": "The output directory for the generated files. This is used to determine the output path for the files that are generated.",
+      "default": "dist"
+    },
+    "default": {
+      "type": "object",
+      "description": "The default transformation that is being applied to the package.",
+      "$ref": "#/definitions/transform"
+    },
+    "transforms": {
+      "type": "array",
+      "description": "The transformations that are being applied to the package. Each transformation is a set of rules that define how to transform a set of definitions into the output format.",
+      "items": {
+        "type": "object",
+        "description": "A transformation that is being applied to the package.",
+        "$ref": "#/definitions/transform"
+      }
+    }
+  },
+  "required": ["input", "transforms"],
+  "additionalItems": false
+}
