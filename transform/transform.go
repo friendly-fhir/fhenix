@@ -20,31 +20,65 @@ type Transform struct {
 	template template.Template
 }
 
+type transformConfig struct {
+	funcs    Funcs
+	reporter templatefuncs.Reporter
+}
+
+type Option interface {
+	set(*transformConfig)
+}
+
+type option func(*transformConfig)
+
+func (o option) set(c *transformConfig) {
+	o(c)
+}
+
+func WithFuncs(fns Funcs) Option {
+	return option(func(c *transformConfig) {
+		c.funcs = fns
+	})
+}
+
+func WithReporter(r templatefuncs.Reporter) Option {
+	return option(func(c *transformConfig) {
+		c.reporter = r
+	})
+}
+
 type Funcs map[string]any
 
-func New(mode config.Mode, transform *config.Transform, fns Funcs) (*Transform, error) {
+func New(mode config.Mode, transform *config.Transform, opts ...Option) (*Transform, error) {
 	if transform == nil {
 		panic("transform: New called with nil transform")
+	}
+	var cfg transformConfig
+	for _, opt := range opts {
+		opt.set(&cfg)
 	}
 	engine, err := template.FromString(string(mode))
 	if err != nil {
 		return nil, err
 	}
 
-	funcs, err := transformer.FuncsFromConfig(transform.Funcs)
+	funcs, err := transformer.FuncsFromConfig(transform.Funcs, cfg.reporter)
 	if err != nil {
 		return nil, err
 	}
-	for name, fn := range fns {
+	for name, fn := range cfg.funcs {
 		funcs[name] = fn
 	}
 
-	tmpl, err := transformer.NewTemplate(engine, transform.Templates, funcs)
+	tmpl, err := transformer.NewTemplate(engine, transform.Templates,
+		transformer.WithFuncs(funcs),
+		transformer.WithReporter(cfg.reporter),
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	output, err := engine.New("").Funcs(templatefuncs.DefaultFuncs).Parse(transform.OutputPath)
+	output, err := engine.New("").Funcs(templatefuncs.NewFuncs(cfg.reporter)).Parse(transform.OutputPath)
 	if err != nil {
 		return nil, err
 	}

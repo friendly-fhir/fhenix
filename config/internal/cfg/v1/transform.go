@@ -172,7 +172,7 @@ func verifyTemplate(v string) error {
 	if strings.TrimSpace(v) == "" {
 		return nil
 	}
-	_, err := template.New("").Funcs(templatefuncs.DefaultFuncs).Parse(v)
+	_, err := template.New("").Funcs(templatefuncs.NewFuncs(nil)).Parse(v)
 	return err
 }
 

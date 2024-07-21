@@ -72,7 +72,7 @@ func (f *Filter) match(regex, needle string) bool {
 }
 
 func (f *Filter) evaluateTemplate(condition string, v any) bool {
-	tmpl := template.New("").Funcs(templatefuncs.DefaultFuncs)
+	tmpl := template.New("").Funcs(templatefuncs.NewFuncs(nil))
 	_, err := tmpl.Parse(strings.TrimSpace(condition))
 	if err != nil {
 		return false

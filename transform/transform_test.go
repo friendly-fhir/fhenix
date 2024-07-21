@@ -86,7 +86,7 @@ func TestNew(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := transform.New(tc.mode, tc.input, nil)
+			got, err := transform.New(tc.mode, tc.input)
 
 			if got, want := err, tc.wantErr; !cmp.Equal(got, want, cmpopts.EquateErrors()) {
 				t.Fatalf("New() = error %v, want %v", got, want)
@@ -165,7 +165,7 @@ func TestTransformCanTransform(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			transform, err := transform.New(config.Mode("text"), tc.config, nil)
+			transform, err := transform.New(config.Mode("text"), tc.config)
 			if err != nil {
 				t.Fatalf("New() = %v", err)
 			}
@@ -197,7 +197,7 @@ func TestTransformOutputPath(t *testing.T) {
 		}, {
 			name: "with templated values",
 			config: &config.Transform{
-				OutputPath: "testdata/{{ .Name | lowercase }}.output",
+				OutputPath: "testdata/{{ .Name | string.Lower }}.output",
 			},
 			input: &model.Type{
 				Name: "SomeName",
@@ -217,7 +217,7 @@ func TestTransformOutputPath(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			transform, err := transform.New(config.Mode("text"), tc.config, nil)
+			transform, err := transform.New(config.Mode("text"), tc.config)
 			if err != nil {
 				t.Fatalf("New() = %v", err)
 			}

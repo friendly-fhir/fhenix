@@ -8,8 +8,8 @@ import (
 	"github.com/friendly-fhir/fhenix/internal/templatefuncs"
 )
 
-func NewFunc(path string) (func(...any) string, error) {
-	fntmpl := texttemplate.New("").Funcs(templatefuncs.DefaultFuncs)
+func NewFunc(path string, reporter templatefuncs.Reporter) (func(...any) string, error) {
+	fntmpl := texttemplate.New("").Funcs(templatefuncs.NewFuncs(reporter))
 
 	var err error
 	bytes, err := os.ReadFile(path)
@@ -31,10 +31,10 @@ func NewFunc(path string) (func(...any) string, error) {
 	}, nil
 }
 
-func FuncsFromConfig(funcs map[string]string) (map[string]any, error) {
+func FuncsFromConfig(funcs map[string]string, reporter templatefuncs.Reporter) (map[string]any, error) {
 	result := make(map[string]any, len(funcs))
 	for name, path := range funcs {
-		fn, err := NewFunc(path)
+		fn, err := NewFunc(path, reporter)
 		if err != nil {
 			return nil, err
 		}

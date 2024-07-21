@@ -21,9 +21,40 @@ const (
 `
 )
 
+type config struct {
+	funcs    map[string]any
+	reporter templatefuncs.Reporter
+}
+
+type Option interface {
+	apply(*config)
+}
+
+type option func(*config)
+
+func (o option) apply(c *config) {
+	o(c)
+}
+
+func WithFuncs(fns map[string]any) Option {
+	return option(func(c *config) {
+		c.funcs = fns
+	})
+}
+
+func WithReporter(r templatefuncs.Reporter) Option {
+	return option(func(c *config) {
+		c.reporter = r
+	})
+}
+
 // NewTemplate creates a new template using the underlying template engine.
-func NewTemplate(engine template.Engine, templates map[string]string, fns map[string]any) (template.Template, error) {
-	tmpl := engine.New("").Funcs(templatefuncs.DefaultFuncs).Funcs(fns)
+func NewTemplate(engine template.Engine, templates map[string]string, opts ...Option) (template.Template, error) {
+	var cfg config
+	for _, opt := range opts {
+		opt.apply(&cfg)
+	}
+	tmpl := engine.New("").Funcs(templatefuncs.NewFuncs(cfg.reporter)).Funcs(cfg.funcs)
 
 	defaults := map[string]string{
 		"main":                 DefaultMainTemplate,

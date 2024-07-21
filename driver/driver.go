@@ -13,6 +13,7 @@ import (
 	"github.com/friendly-fhir/fhenix/config"
 	"github.com/friendly-fhir/fhenix/driver/job"
 	"github.com/friendly-fhir/fhenix/internal/task"
+	"github.com/friendly-fhir/fhenix/internal/templatefuncs"
 	"github.com/friendly-fhir/fhenix/model"
 	"github.com/friendly-fhir/fhenix/model/conformance"
 	"github.com/friendly-fhir/fhenix/model/loader"
@@ -31,6 +32,8 @@ func (o option) set(d *Driver) {
 }
 
 var _ Option = (*option)(nil)
+
+type Reporter = templatefuncs.Reporter
 
 type Listener interface {
 	BeforeDownload()
@@ -91,6 +94,7 @@ type Driver struct {
 	explicitPackages []registry.PackageRef
 
 	listeners []Listener
+	reporter  templatefuncs.Reporter
 }
 
 // Cache returns an [Option] for the [Driver] that will set the cache to use
@@ -138,6 +142,22 @@ func ForceDownload(force bool) Option {
 func Listeners(listeners ...Listener) Option {
 	return option(func(d *Driver) {
 		d.listeners = append(d.listeners, listeners...)
+	})
+}
+
+// TemplateReporter returns an [Option] for the [Driver] that will set the
+// reporter to use for reporting template errors.
+func TemplateReporter(reporter Reporter) Option {
+	return option(func(d *Driver) {
+		d.reporter = reporter
+	})
+}
+
+// TemplateReportFunc returns an [Option] for the [Driver] that will set the
+// reporter to use for reporting template errors.
+func TemplateReportFunc(report func(error)) Option {
+	return option(func(d *Driver) {
+		d.reporter = templatefuncs.ReporterFunc(report)
 	})
 }
 
@@ -194,7 +214,7 @@ func (d *Driver) LoadTransforms() ([]*transform.Transform, error) {
 	var errs []error
 	transforms := make([]*transform.Transform, 0, len(d.transformConfigs))
 	for _, t := range d.transformConfigs {
-		t, err := transform.New(d.mode, t, Funcs)
+		t, err := transform.New(d.mode, t, transform.WithFuncs(Funcs), transform.WithReporter(d.reporter))
 		if err != nil {
 			errs = append(errs, err)
 			continue

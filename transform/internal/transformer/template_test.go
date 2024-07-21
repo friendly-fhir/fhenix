@@ -44,7 +44,7 @@ func TestNewTemplate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := transformer.NewTemplate(tc.engine, tc.templates, nil)
+			got, err := transformer.NewTemplate(tc.engine, tc.templates)
 
 			if got, want := err, tc.wantErr; !cmp.Equal(got, want, cmpopts.EquateErrors()) {
 				t.Fatalf("NewTemplate() = error %v, want %v", got, want)
@@ -175,7 +175,7 @@ func TestTemplateExecute_SanityCheck(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			tmpl, err := transformer.NewTemplate(tc.engine, tc.templates, nil)
+			tmpl, err := transformer.NewTemplate(tc.engine, tc.templates)
 			if err != nil {
 				t.Fatalf("NewTemplate() = error %v, want nil", err)
 			}

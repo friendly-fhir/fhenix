@@ -35,7 +35,7 @@ func TestNewFunc(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			fn, err := transformer.NewFunc(tc.path)
+			fn, err := transformer.NewFunc(tc.path, nil)
 			if got, want := err, tc.wantErr; !cmp.Equal(got, want, cmpopts.EquateErrors()) {
 				t.Fatalf("NewFunc() = %v, want %v", got, want)
 			}
