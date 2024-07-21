@@ -2,28 +2,24 @@
   "type": "object",
   "properties": {
     "version": {
-      "type": "string",
-      "enum": ["0", "1"]
+      "type": "integer",
+      "enum": [0, 1]
     }
   },
   "oneOf": [
     {
       "if": {
         "properties": {
-          "version": { "const": "0" }
+          "version": {
+            "type": "integer",
+            "const": 0
+          }
         }
       },
       "then": {
         "$ref": "https://friendly-fhir.org/fhenix/jsonschema/fhenix-v0.schema.json"
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "version": { "const": "1" }
-        }
       },
-      "then": {
+      "else": {
         "$ref": "https://friendly-fhir.org/fhenix/jsonschema/fhenix-v1.schema.json"
       }
     }
