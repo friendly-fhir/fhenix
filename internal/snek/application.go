@@ -350,6 +350,11 @@ func toCobraCommand(cfg *config, command Command) *cobra.Command {
 
 		RunE: toRunFunc(cfg, info, command),
 	}
+	result.SetFlagErrorFunc(func(c *cobra.Command, err error) error {
+		Errorf(c.Context(), "%v", err)
+		_ = c.Usage()
+		return err
+	})
 
 	// Install the command flags and completion functions
 	flagsets := command.Flags()
