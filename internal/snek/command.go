@@ -2,6 +2,7 @@ package snek
 
 import (
 	"context"
+	"strings"
 )
 
 // Command is the primary entry-point interface for use in the snek package.
@@ -40,6 +41,9 @@ func (c *BaseCommand) Info() *CommandInfo {
 }
 
 func (c *BaseCommand) Run(ctx context.Context, args []string) error {
+	if len(args) > 0 {
+		return UsageErrorf("invalid input %q", strings.Join(args, " "))
+	}
 	return errNotImplemented
 }
 
