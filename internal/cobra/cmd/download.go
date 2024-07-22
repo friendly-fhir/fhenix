@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"os"
 	"runtime"
 	"time"
 
@@ -23,6 +24,8 @@ type DownloadCommand struct {
 	Registry   string
 	AuthToken  string
 	NoProgress bool
+
+	Log string
 
 	snek.BaseCommand
 }
@@ -60,7 +63,7 @@ func (dc *DownloadCommand) Run(ctx context.Context, args []string) error {
 		cache = registry.DefaultCache()
 	}
 	var listener driver.Listener
-	listener = NewBasicListener(ctx, dc.Verbose)
+	listener = NewLogListener(snek.CommandOut(ctx), dc.Verbose)
 	if term, ok := terminal.New(snek.CommandOut(ctx)); !dc.NoProgress && ok {
 		term.HideCursor()
 
@@ -68,6 +71,15 @@ func (dc *DownloadCommand) Run(ctx context.Context, args []string) error {
 
 		defer term.Close()
 		defer term.Bottom()
+	}
+
+	if dc.Log != "" {
+		log, err := os.Create(dc.Log)
+		if err != nil {
+			return err
+		}
+		defer log.Close()
+		cache.AddListener(NewLogListener(log, true))
 	}
 
 	cache.AddListener(listener)
@@ -110,6 +122,7 @@ func (dc *DownloadCommand) Flags() []*snek.FlagSet {
 	output.BoolP(&dc.Verbose, "verbose", "v", false, "enable verbose output")
 	output.Bool(&dc.ExcludeDependencies, "exclude-dependencies", false, "include dependencies when downloading the package")
 	output.Bool(&dc.NoProgress, "no-progress", false, "disable progress bar")
+	output.String(&dc.Log, "log", "", "log file to write the download progress to")
 	return []*snek.FlagSet{communication, output}
 }
 

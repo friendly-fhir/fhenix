@@ -10,13 +10,16 @@ import (
 )
 
 type Listener interface {
-	OnLoad(ref registry.PackageRef)
+	BeforeLoadPackage(ref registry.PackageRef)
+	AfterLoadPackage(ref registry.PackageRef, err error)
 	listener()
 }
 
 type BaseListener struct{}
 
-func (BaseListener) OnLoad(ref registry.PackageRef) {}
+func (BaseListener) BeforeLoadPackage(ref registry.PackageRef) {}
+
+func (BaseListener) AfterLoadPackage(ref registry.PackageRef, err error) {}
 
 func (BaseListener) listener() {}
 
@@ -99,11 +102,14 @@ func (l *Loader) load(ref registry.PackageRef) task.Task {
 			return err
 		}
 		for _, listener := range l.listeners {
-			listener.OnLoad(ref)
+			listener.BeforeLoadPackage(ref)
 		}
 		l.m.Lock()
 		err = l.module.FromPackage(pkg)
 		l.m.Unlock()
+		for _, listener := range l.listeners {
+			listener.AfterLoadPackage(ref, err)
+		}
 		if err != nil {
 			return err
 		}

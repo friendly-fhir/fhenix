@@ -48,9 +48,11 @@ type Listener interface {
 	BeforeLoadModel()
 	AfterLoadModel(err error)
 
-	BeforeTransform()
-	OnTransform(output string)
-	AfterTransform(jobs int, err error)
+	BeforeTransformStage()
+	BeforeTransform(n int)
+	OnTransformOutput(n int, output string)
+	AfterTransformOutput(n int, output string, err error)
+	AfterTransformStage(n int, err error)
 
 	loader.Listener
 	registry.CacheListener
@@ -73,9 +75,11 @@ func (BaseListener) AfterLoadConformance(error) {}
 func (BaseListener) BeforeLoadModel()     {}
 func (BaseListener) AfterLoadModel(error) {}
 
-func (BaseListener) BeforeTransform()          {}
-func (BaseListener) OnTransform(output string) {}
-func (BaseListener) AfterTransform(int, error) {}
+func (BaseListener) BeforeTransformStage()                                {}
+func (BaseListener) BeforeTransform(i int)                                {}
+func (BaseListener) OnTransformOutput(i int, output string)               {}
+func (BaseListener) AfterTransformOutput(i int, output string, err error) {}
+func (BaseListener) AfterTransformStage(int, error)                       {}
 
 var _ Listener = (*BaseListener)(nil)
 
@@ -259,22 +263,29 @@ func (d *Driver) LoadModel() (*model.Model, error) {
 
 func (d *Driver) Transform(ctx context.Context, model *model.Model, transforms []*transform.Transform) error {
 	for _, listener := range d.listeners {
-		listener.BeforeTransform()
+		listener.BeforeTransformStage()
 	}
 	runner := task.NewRunner(d.parallel)
 
-	for _, t := range transforms {
+	for i, t := range transforms {
 		jobs, err := job.New(model, d.outputPath, t)
+		for _, listener := range d.listeners {
+			listener.BeforeTransform(i)
+		}
 		if err != nil {
 			return err
 		}
 		for _, job := range jobs {
 			runner.Add(task.Func(func(ctx context.Context) error {
 				for _, listener := range d.listeners {
-					listener.OnTransform(job.OutputPath())
+					listener.OnTransformOutput(i, job.OutputPath())
 				}
 
 				err := job.Execute(ctx)
+
+				for _, listener := range d.listeners {
+					listener.AfterTransformOutput(i, job.OutputPath(), err)
+				}
 				return err
 			}))
 		}
@@ -282,7 +293,7 @@ func (d *Driver) Transform(ctx context.Context, model *model.Model, transforms [
 
 	jobs, err := runner.Run(ctx)
 	for _, listener := range d.listeners {
-		listener.AfterTransform(jobs, err)
+		listener.AfterTransformStage(jobs, err)
 	}
 	return err
 }

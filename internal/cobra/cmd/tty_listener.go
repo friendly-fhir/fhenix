@@ -2,21 +2,29 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 	"unicode/utf8"
 
+	"github.com/friendly-fhir/fhenix/data"
 	"github.com/friendly-fhir/fhenix/driver"
 	"github.com/friendly-fhir/fhenix/internal/ansi"
 	"github.com/friendly-fhir/fhenix/internal/snek/spinner"
 	"github.com/friendly-fhir/fhenix/internal/snek/terminal"
+	"github.com/friendly-fhir/fhenix/registry"
 )
 
 type TTYListener struct {
-	offset    int
-	downloads map[string]*download
-	m         sync.Mutex
+	offset     int
+	stage      int
+	downloads  map[string]*download
+	loaderPkgs map[string]*loadPackage
+	transforms map[int]*transform
+
+	m sync.Mutex
 
 	terminal *terminal.Terminal
 	spinner  *spinner.Spinner
@@ -53,6 +61,55 @@ func (l *TTYListener) download(key string) *download {
 		l.downloads[key] = d
 	}
 	return d
+}
+
+func (l *TTYListener) transform(n int) *transform {
+	if l.transforms == nil {
+		l.transforms = make(map[int]*transform)
+	}
+	t, ok := l.transforms[n]
+	if !ok {
+		offset := l.offset
+		l.offset++
+
+		t = &transform{
+			Line: l.terminal.Line(offset),
+		}
+		l.transforms[n] = t
+	}
+	return t
+}
+
+func (l *TTYListener) loadPackage(key string) *loadPackage {
+	if l.loaderPkgs == nil {
+		l.loaderPkgs = make(map[string]*loadPackage)
+	}
+	p, ok := l.loaderPkgs[key]
+	if !ok {
+		offset := l.offset
+		l.offset++
+
+		p = &loadPackage{
+			Line: l.terminal.Line(offset),
+		}
+		l.loaderPkgs[key] = p
+	}
+	return p
+}
+
+func (l *TTYListener) BeforeDownload() {
+	l.m.Lock()
+	defer l.m.Unlock()
+
+	offset := l.offset
+	l.offset++
+	line := l.terminal.Line(offset)
+	stage := l.stage
+	l.stage++
+
+	prefix := fmt.Sprintf("[%d/5]", stage+1)
+
+	line.Printf("%s %s\n", prefix, "Downloading FHIR packages")
 }
 
 func (l *TTYListener) BeforeFetch(registry, pkg, version string) {
@@ -121,6 +178,131 @@ func (l *TTYListener) OnCacheHit(registry, pkg, version string) {
 	download.Line.Print(l.valueProgress(ansi.FGYellow.Format("✓"), name, "cache"))
 }
 
+func (l *TTYListener) BeforeLoadTransform() {
+	l.m.Lock()
+	defer l.m.Unlock()
+
+	offset := l.offset
+	l.offset++
+	stage := l.stage
+	l.stage++
+
+	prefix := fmt.Sprintf("[%d/5]", stage+1)
+
+	line := l.terminal.Line(offset)
+	line.Printf("%s %s\n", prefix, "Loading transformations")
+}
+
+func (l *TTYListener) BeforeLoadConformance() {
+	l.m.Lock()
+	defer l.m.Unlock()
+
+	offset := l.offset
+	l.offset++
+	stage := l.stage
+	l.stage++
+
+	prefix := fmt.Sprintf("[%d/5]", stage+1)
+
+	line := l.terminal.Line(offset)
+	line.Printf("%s %s\n", prefix, "Loading conformance module")
+}
+
+func (l *TTYListener) BeforeLoadModel() {
+	l.m.Lock()
+	defer l.m.Unlock()
+
+	offset := l.offset
+	l.offset++
+	stage := l.stage
+	l.stage++
+
+	prefix := fmt.Sprintf("[%d/5]", stage+1)
+
+	line := l.terminal.Line(offset)
+	line.Printf("%s %s\n", prefix, "Loading model")
+}
+
+func (l *TTYListener) BeforeLoadPackage(ref registry.PackageRef) {
+	l.m.Lock()
+	defer l.m.Unlock()
+
+	pkg := l.loadPackage(ref.String())
+	name := fmt.Sprintf("%s%s%s", ansi.FGBrightWhite.Format(ref.Name()), ansi.FGGray.Format("@"), ref.Version())
+	pkg.Line.Print(l.valueProgress(ansi.FGYellow.Format("-"), name, "loading"))
+}
+
+func (l *TTYListener) AfterLoadPackage(ref registry.PackageRef, err error) {
+	l.m.Lock()
+	defer l.m.Unlock()
+
+	name := fmt.Sprintf("%s%s%s", ansi.FGBrightWhite.Format(ref.Name()), ansi.FGGray.Format("@"), ref.Version())
+	pkg := l.loadPackage(ref.String())
+	if err != nil {
+		pkg.Line.Println(l.valueProgress(ansi.FGRed.Format("x"), name, "error"))
+	} else {
+		pkg.Line.Println(l.valueProgress(ansi.FGGreen.Format("✓"), name, "loaded"))
+	}
+}
+
+func (l *TTYListener) BeforeTransformStage() {
+	l.m.Lock()
+	defer l.m.Unlock()
+
+	offset := l.offset
+	l.offset++
+	stage := l.stage
+	l.stage++
+
+	prefix := fmt.Sprintf("[%d/5]", stage+1)
+
+	line := l.terminal.Line(offset)
+	line.Printf("%s %s\n", prefix, "Transforming Outputs")
+}
+
+func (l *TTYListener) BeforeTransform(i int) {
+	l.m.Lock()
+	defer l.m.Unlock()
+
+	content := fmt.Sprintf("transform %d", i)
+	transform := l.transform(i)
+	transform.Line.Print(l.valueProgress(ansi.FGYellow.Format("-"), content, "transforming"))
+}
+
+func (l *TTYListener) OnTransform(i int, output string) {
+	l.m.Lock()
+	defer l.m.Unlock()
+
+	content := l.transformPrefix(i, output)
+	transform := l.transform(i)
+	transform.Line.Print(l.valueProgress(ansi.FGYellow.Format("-"), content, "transforming"))
+}
+
+func (l *TTYListener) transformPrefix(i int, output string) string {
+	cwd, err := os.Getwd()
+	if err != nil {
+		cwd = "."
+	}
+	path, err := filepath.Rel(cwd, output)
+	if err != nil {
+		path = output
+	}
+	return fmt.Sprintf("transform %d (%s)", i, ansi.FGGray.Format(path))
+}
+
+func (l *TTYListener) AfterTransformOutput(i int, output string, err error) {
+	l.m.Lock()
+	defer l.m.Unlock()
+
+	content := l.transformPrefix(i, output)
+	transform := l.transform(i)
+	if err != nil {
+		transform.Line.Print(l.valueProgress(ansi.FGRed.Format("x"), content, "error"))
+	} else {
+		transform.Line.Print(l.valueProgress(ansi.FGGreen.Format("✓"), content, "done"))
+	}
+}
+
 var _ driver.Listener = (*TTYListener)(nil)
 
 type download struct {
@@ -128,6 +310,14 @@ type download struct {
 	Current    int64
 	Line       *terminal.Line
 	Spinner    *spinner.Spinner
+}
+
+type loadPackage struct {
+	Line *terminal.Line
+}
+
+type transform struct {
+	Line *terminal.Line
 }
 
 func (l *TTYListener) valueProgress(state, name, suffix string) string {
@@ -173,30 +363,13 @@ func (l *TTYListener) progress(name string, from, to int64, err error) string {
 	}
 	fromStr, toStr := "0", "?"
 	if from > 0 {
-		fromStr = toDataUnit(from)
+		fromStr = data.Quantity(from).String()
 	}
 	if to > 0 {
-		toStr = toDataUnit(to)
+		toStr = data.Quantity(to).String()
 	}
 
 	suffix := fmt.Sprintf("(%v / %v)", fromStr, toStr)
 	value := fmt.Sprintf("%3d%% %-28s", percent, suffix)
 	return l.valueProgress(state, name, value)
-}
-
-func toDataUnit(units int64) string {
-	if units < 1024 {
-		return fmt.Sprintf("%d B", units)
-	}
-	if units < 1024*1024 {
-		return fmt.Sprintf("%.2f KB", float64(units)/1024)
-	}
-	if units < 1024*1024*1024 {
-		return fmt.Sprintf("%.2f MB", float64(units)/1024/1024)
-	}
-	if units < 1024*1024*1024*1024 {
-		return fmt.Sprintf("%.2f GB", float64(units)/1024/1024/1024)
-	}
-	// Should never reach here?
-	return fmt.Sprintf("%.2f TB", float64(units)/1024/1024/1024/1024)
 }

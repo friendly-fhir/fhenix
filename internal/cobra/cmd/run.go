@@ -10,6 +10,7 @@ import (
 	"github.com/friendly-fhir/fhenix/config"
 	"github.com/friendly-fhir/fhenix/driver"
 	"github.com/friendly-fhir/fhenix/internal/snek"
+	"github.com/friendly-fhir/fhenix/internal/snek/terminal"
 	"github.com/friendly-fhir/fhenix/registry"
 )
 
@@ -22,6 +23,9 @@ type RunCommand struct {
 	FHIRCache string
 	Verbose   bool
 	Timeout   time.Duration
+
+	NoProgress bool
+	Log        string
 	snek.BaseCommand
 }
 
@@ -58,6 +62,8 @@ func (rc *RunCommand) Flags() []*snek.FlagSet {
 	output.StringP(&rc.Output, "output", "o", "", "The output directory to write the generated code to")
 	output.String(&rc.FHIRCache, "fhir-cache", "", "The configuration path to download the FHIR IGs to")
 	output.BoolP(&rc.Verbose, "verbose", "v", false, "Enable verbose output")
+	output.Bool(&rc.NoProgress, "no-progress", false, "Disable progress output")
+	output.String(&rc.Log, "log", "", "The log file to write the output to")
 
 	return []*snek.FlagSet{
 		output,
@@ -81,6 +87,27 @@ func (rc *RunCommand) Run(ctx context.Context, args []string) error {
 		}
 	}
 
+	var listeners []driver.Listener
+	if term, ok := terminal.New(snek.CommandOut(ctx)); !rc.NoProgress && ok {
+		term.HideCursor()
+
+		listeners = append(listeners, NewProgressListener(term, rc.Verbose))
+
+		defer term.Close()
+		defer term.Bottom()
+	} else {
+		listeners = append(listeners, NewLogListener(snek.CommandOut(ctx), rc.Verbose))
+	}
+
+	if rc.Log != "" {
+		log, err := os.Create(rc.Log)
+		if err != nil {
+			return err
+		}
+		defer log.Close()
+		listeners = append(listeners, NewLogListener(log, true))
+	}
+
 	cache := registry.DefaultCache()
 	if rc.FHIRCache != "" {
 		cache = registry.NewCache(rc.FHIRCache)
@@ -100,7 +127,7 @@ func (rc *RunCommand) Run(ctx context.Context, args []string) error {
 		driver.ForceDownload(rc.Force),
 		driver.Parallel(rc.Parallel),
 		driver.Cache(cache),
-		driver.Listeners(NewBasicListener(ctx, rc.Verbose)),
+		driver.Listeners(listeners...),
 		driver.TemplateReportFunc(reporter),
 	}
 	driver, err := driver.New(cfg, opts...)
