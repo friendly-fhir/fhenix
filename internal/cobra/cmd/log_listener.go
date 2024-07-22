@@ -25,72 +25,43 @@ func NewLogListener(w io.Writer, verbose bool) *Listener {
 	}
 }
 
-func (l *Listener) BeforeDownload() {
-	l.out.Println("[1] Downloading FHIR Packages...")
-}
-
-func (l *Listener) AfterDownload(err error) {
-	if err != nil {
-		l.out.Printf("[1] Downloading FHIR Packages... Failed: %v", err)
-	} else {
-		l.out.Println("[1] Downloading FHIR Packages... Succeeded")
-	}
-}
-
 func (l *Listener) OnUnpack(registry, pkg, version, file string, data int64) {
 	if l.verbose {
 		l.out.Printf("[%s@%s] %s (from %s): %d bytes", pkg, version, file, registry, data)
 	}
 }
-func (l *Listener) BeforeLoadTransform() {
-	l.out.Println("[4] Loading Transformations...")
-}
 
-func (l *Listener) AfterLoadTransform(err error) {
-	if err != nil {
-		l.out.Printf("[4] Loading Transformations... Failed: %v", err)
-	} else {
-		l.out.Println("[4] Loading Transformations... Succeeded")
+func (l *Listener) BeforeStage(s driver.Stage) {
+	switch s {
+	case driver.StageDownload:
+		l.out.Println("[1] Downloading FHIR Packages...")
+	case driver.StageLoadConformance:
+		l.out.Println("[2] Loading Conformance...")
+	case driver.StageLoadModel:
+		l.out.Println("[3] Loading Model...")
+	case driver.StageLoadTransform:
+		l.out.Println("[4] Loading Transformations...")
+	case driver.StageTransform:
+		l.out.Println("[5] Transforming Model...")
 	}
 }
 
-func (l *Listener) BeforeLoadConformance() {
-	l.out.Println("[2] Loading Conformance...")
-}
-
-func (l *Listener) AfterLoadConformance(err error) {
+func (l *Listener) AfterStage(s driver.Stage, err error) {
+	suffix := "succeeded"
 	if err != nil {
-		l.out.Printf("[2] Loading Conformance... Failed: %v", err)
-	} else {
-		l.out.Println("[2] Loading Conformance... Succeeded")
+		suffix = "failed: " + err.Error()
 	}
-}
-
-func (l *Listener) BeforeLoadModel() {
-	l.out.Println("[3] Loading Model...")
-}
-
-func (l *Listener) AfterLoadModel(err error) {
-	if err != nil {
-		l.out.Printf("[3] Loading Model... Failed: %v", err)
-	} else {
-		l.out.Println("[3] Loading Model... Succeeded")
-	}
-}
-
-func (l *Listener) BeforeTransformStage() {
-	l.out.Println("[5] Transforming Model...")
-}
-
-func (l *Listener) OnTransformStage(output string) {
-	l.out.Printf("[5] Transforming Model... %s", output)
-}
-
-func (l *Listener) AfterTransformStage(jobs int, err error) {
-	if err != nil {
-		l.out.Printf("[5] Transforming Model... Failed: %v", err)
-	} else {
-		l.out.Println("[5] Transforming Model... Succeeded")
+	switch s {
+	case driver.StageDownload:
+		l.out.Printf("[1] Downloading FHIR Packages... %s", suffix)
+	case driver.StageLoadConformance:
+		l.out.Printf("[2] Loading Conformance... %s", suffix)
+	case driver.StageLoadModel:
+		l.out.Printf("[3] Loading Model... %s", suffix)
+	case driver.StageLoadTransform:
+		l.out.Printf("[4] Loading Transformations... %s", suffix)
+	case driver.StageTransform:
+		l.out.Printf("[5] Transforming Model... %s", suffix)
 	}
 }
 

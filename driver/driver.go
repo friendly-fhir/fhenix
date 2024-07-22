@@ -35,24 +35,23 @@ var _ Option = (*option)(nil)
 
 type Reporter = templatefuncs.Reporter
 
+type Stage int
+
+const (
+	StageDownload Stage = iota
+	StageLoadTransform
+	StageLoadConformance
+	StageLoadModel
+	StageTransform
+)
+
 type Listener interface {
-	BeforeDownload()
-	AfterDownload(err error)
+	BeforeStage(stage Stage)
+	AfterStage(stage Stage, err error)
 
-	BeforeLoadTransform()
-	AfterLoadTransform(err error)
-
-	BeforeLoadConformance()
-	AfterLoadConformance(err error)
-
-	BeforeLoadModel()
-	AfterLoadModel(err error)
-
-	BeforeTransformStage()
 	BeforeTransform(n int)
 	OnTransformOutput(n int, output string)
 	AfterTransformOutput(n int, output string, err error)
-	AfterTransformStage(n int, err error)
 
 	loader.Listener
 	registry.CacheListener
@@ -63,23 +62,12 @@ type BaseListener struct {
 	registry.BaseCacheListener
 }
 
-func (BaseListener) BeforeDownload()     {}
-func (BaseListener) AfterDownload(error) {}
+func (BaseListener) BeforeStage(Stage)       {}
+func (BaseListener) AfterStage(Stage, error) {}
 
-func (BaseListener) BeforeLoadTransform()     {}
-func (BaseListener) AfterLoadTransform(error) {}
-
-func (BaseListener) BeforeLoadConformance()     {}
-func (BaseListener) AfterLoadConformance(error) {}
-
-func (BaseListener) BeforeLoadModel()     {}
-func (BaseListener) AfterLoadModel(error) {}
-
-func (BaseListener) BeforeTransformStage()                                {}
 func (BaseListener) BeforeTransform(i int)                                {}
 func (BaseListener) OnTransformOutput(i int, output string)               {}
 func (BaseListener) AfterTransformOutput(i int, output string, err error) {}
-func (BaseListener) AfterTransformStage(int, error)                       {}
 
 var _ Listener = (*BaseListener)(nil)
 
@@ -190,7 +178,7 @@ func New(config *config.Config, opts ...Option) (*Driver, error) {
 
 func (d *Driver) DownloadPackages(ctx context.Context) error {
 	for _, listener := range d.listeners {
-		listener.BeforeDownload()
+		listener.BeforeStage(StageDownload)
 	}
 
 	downloader := registry.NewDownloader(d.cache).Force(d.forceDownload).Workers(d.parallel)
@@ -205,14 +193,14 @@ func (d *Driver) DownloadPackages(ctx context.Context) error {
 
 	err := downloader.Start(ctx)
 	for _, listener := range d.listeners {
-		listener.AfterDownload(err)
+		listener.AfterStage(StageDownload, err)
 	}
 	return err
 }
 
 func (d *Driver) LoadTransforms() ([]*transform.Transform, error) {
 	for _, listener := range d.listeners {
-		listener.BeforeLoadTransform()
+		listener.BeforeStage(StageLoadTransform)
 	}
 
 	var errs []error
@@ -228,14 +216,14 @@ func (d *Driver) LoadTransforms() ([]*transform.Transform, error) {
 
 	err := errors.Join(errs...)
 	for _, listener := range d.listeners {
-		listener.AfterLoadTransform(err)
+		listener.AfterStage(StageLoadTransform, err)
 	}
 	return transforms, err
 }
 
 func (d *Driver) LoadConformanceModule() error {
 	for _, listener := range d.listeners {
-		listener.BeforeLoadConformance()
+		listener.BeforeStage(StageLoadConformance)
 	}
 	loader := loader.New(d.cache,
 		loader.WithModule(d.module),
@@ -244,26 +232,26 @@ func (d *Driver) LoadConformanceModule() error {
 	)
 	err := loader.Load(d.explicitPackages...)
 	for _, listener := range d.listeners {
-		listener.AfterLoadConformance(err)
+		listener.AfterStage(StageLoadConformance, err)
 	}
 	return err
 }
 
 func (d *Driver) LoadModel() (*model.Model, error) {
 	for _, listener := range d.listeners {
-		listener.BeforeLoadModel()
+		listener.BeforeStage(StageLoadModel)
 	}
 	model := model.NewModel(d.module)
 	err := model.DefineAllTypes()
 	for _, listener := range d.listeners {
-		listener.AfterLoadModel(err)
+		listener.AfterStage(StageLoadModel, err)
 	}
 	return model, err
 }
 
 func (d *Driver) Transform(ctx context.Context, model *model.Model, transforms []*transform.Transform) error {
 	for _, listener := range d.listeners {
-		listener.BeforeTransformStage()
+		listener.BeforeStage(StageTransform)
 	}
 	runner := task.NewRunner(d.parallel)
 
@@ -291,9 +279,9 @@ func (d *Driver) Transform(ctx context.Context, model *model.Model, transforms [
 		}
 	}
 
-	jobs, err := runner.Run(ctx)
+	_, err := runner.Run(ctx)
 	for _, listener := range d.listeners {
-		listener.AfterTransformStage(jobs, err)
+		listener.AfterStage(StageTransform, err)
 	}
 	return err
 }

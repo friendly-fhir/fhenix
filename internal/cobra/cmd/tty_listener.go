@@ -97,19 +97,29 @@ func (l *TTYListener) loadPackage(key string) *loadPackage {
 	return p
 }
 
-func (l *TTYListener) BeforeDownload() {
+func (l *TTYListener) BeforeStage(s driver.Stage) {
 	l.m.Lock()
 	defer l.m.Unlock()
 
 	offset := l.offset
 	l.offset++
 	line := l.terminal.Line(offset)
-	stage := l.stage
 	l.stage++
+	stage := l.stage
 
-	prefix := fmt.Sprintf("[%d/5]", stage+1)
-
-	line.Printf("%s %s\n", prefix, "Downloading FHIR packages")
+	prefix := fmt.Sprintf("[%d/5]", stage)
+	switch s {
+	case driver.StageDownload:
+		line.Printf("%s %s\n", prefix, "Downloading FHIR packages")
+	case driver.StageLoadTransform:
+		line.Printf("%s %s\n", prefix, "Loading transformations")
+	case driver.StageLoadConformance:
+		line.Printf("%s %s\n", prefix, "Loading conformance module")
+	case driver.StageLoadModel:
+		line.Printf("%s %s\n", prefix, "Loading model")
+	case driver.StageTransform:
+		line.Printf("%s %s\n", prefix, "Transforming Outputs")
+	}
 }
 
 func (l *TTYListener) BeforeFetch(registry, pkg, version string) {
@@ -178,51 +188,6 @@ func (l *TTYListener) OnCacheHit(registry, pkg, version string) {
 	download.Line.Print(l.valueProgress(ansi.FGYellow.Format("✓"), name, "cache"))
 }
 
-func (l *TTYListener) BeforeLoadTransform() {
-	l.m.Lock()
-	defer l.m.Unlock()
-
-	offset := l.offset
-	l.offset++
-	stage := l.stage
-	l.stage++
-
-	prefix := fmt.Sprintf("[%d/5]", stage+1)
-
-	line := l.terminal.Line(offset)
-	line.Printf("%s %s\n", prefix, "Loading transformations")
-}
-
-func (l *TTYListener) BeforeLoadConformance() {
-	l.m.Lock()
-	defer l.m.Unlock()
-
-	offset := l.offset
-	l.offset++
-	stage := l.stage
-	l.stage++
-
-	prefix := fmt.Sprintf("[%d/5]", stage+1)
-
-	line := l.terminal.Line(offset)
-	line.Printf("%s %s\n", prefix, "Loading conformance module")
-}
-
-func (l *TTYListener) BeforeLoadModel() {
-	l.m.Lock()
-	defer l.m.Unlock()
-
-	offset := l.offset
-	l.offset++
-	stage := l.stage
-	l.stage++
-
-	prefix := fmt.Sprintf("[%d/5]", stage+1)
-
-	line := l.terminal.Line(offset)
-	line.Printf("%s %s\n", prefix, "Loading model")
-}
-
 func (l *TTYListener) BeforeLoadPackage(ref registry.PackageRef) {
 	l.m.Lock()
 	defer l.m.Unlock()
@@ -243,21 +208,6 @@ func (l *TTYListener) AfterLoadPackage(ref registry.PackageRef, err error) {
 	} else {
 		pkg.Line.Println(l.valueProgress(ansi.FGGreen.Format("✓"), name, "loaded"))
 	}
-}
-
-func (l *TTYListener) BeforeTransformStage() {
-	l.m.Lock()
-	defer l.m.Unlock()
-
-	offset := l.offset
-	l.offset++
-	stage := l.stage
-	l.stage++
-
-	prefix := fmt.Sprintf("[%d/5]", stage+1)
-
-	line := l.terminal.Line(offset)
-	line.Printf("%s %s\n", prefix, "Transforming Outputs")
 }
 
 func (l *TTYListener) BeforeTransform(i int) {
