@@ -46,282 +46,294 @@ func New(w io.Writer) (terminal *Terminal, ok bool) {
 }
 
 // Close closes the terminal, and re-shows the cursor if it was hidden.
-func (c *Terminal) Close() {
-	c.cursor.Show()
+func (t *Terminal) Close() {
+	t.cursor.Show()
 }
 
 // HideCursor hides the cursor.
-func (c *Terminal) HideCursor() {
-	c.cursor.Hide()
+func (t *Terminal) HideCursor() {
+	t.cursor.Hide()
 }
 
 // ShowCursor shows the cursor.
-func (c *Terminal) ShowCursor() {
-	c.cursor.Show()
+func (t *Terminal) ShowCursor() {
+	t.cursor.Show()
 }
 
 // Println prints the given arguments to the terminal, followed by a newline.
-func (c *Terminal) Println(n int, args ...any) (int, error) {
+func (t *Terminal) Println(n int, args ...any) (int, error) {
 	formatted := fmt.Sprintln(args...)
 
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	c.setRow(n)
-	c.setColumn(0)
-	c.cursor.ClearLine()
-	return c.write([]byte(formatted))
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	t.setRow(n)
+	t.setColumn(0)
+	t.cursor.ClearLine()
+	return t.write([]byte(formatted))
 }
 
 // Print prints the given arguments to the terminal.
-func (c *Terminal) Print(n int, args ...any) (int, error) {
+func (t *Terminal) Print(n int, args ...any) (int, error) {
 	formatted := fmt.Sprint(args...)
 
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	c.setRow(n)
-	c.setColumn(0)
-	return c.write([]byte(formatted))
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	t.setRow(n)
+	t.setColumn(0)
+	return t.write([]byte(formatted))
 }
 
 // Printf prints the given arguments to the terminal, using the given format.
-func (c *Terminal) Printf(n int, format string, args ...any) (int, error) {
+func (t *Terminal) Printf(n int, format string, args ...any) (int, error) {
 	formatted := fmt.Sprintf(format, args...)
 
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	c.setRow(n)
-	c.setColumn(0)
-	return c.write([]byte(formatted))
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	t.setRow(n)
+	t.setColumn(0)
+	return t.write([]byte(formatted))
 }
 
 // Offset returns the current row and column of the cursor, offset from where
 // the cursor was initially created.
-func (c *Terminal) Offset() (int, int) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+func (t *Terminal) Offset() (int, int) {
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
-	return c.row, c.col
+	return t.row, t.col
 }
 
 // Row returns the current row of the cursor.
-func (c *Terminal) Row() int {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+func (t *Terminal) Row() int {
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
-	return c.row
+	return t.row
 }
 
 // Column returns the current column of the cursor.
-func (c *Terminal) Column() int {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+func (t *Terminal) Column() int {
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
-	return c.col
+	return t.col
+}
+
+func (t *Terminal) Width() int {
+	w, _, err := term.GetSize(int(t.w.Fd()))
+	if err != nil {
+		return 80
+	}
+	return w
 }
 
 // Write writes the given bytes to the cursor, updating the row and column.
-func (c *Terminal) Write(p []byte) (int, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	return c.write(p)
+func (t *Terminal) Write(p []byte) (int, error) {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	return t.write(p)
 }
 
 // Up moves the cursor up the given number of rows. It cannot exceed the point
 // where the cursor was initially created.
-func (c *Terminal) Up(rows int) *Terminal {
+func (t *Terminal) Up(rows int) *Terminal {
 	if rows < 0 {
-		return c.Down(-rows)
+		return t.Down(-rows)
 	}
 
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
-	offset := min(max(rows, 0), c.row)
-	c.row -= offset
-	c.cursor.Up(offset)
-	return c
+	offset := min(max(rows, 0), t.row)
+	t.row -= offset
+	t.cursor.Up(offset)
+	return t
 }
 
-func (c *Terminal) Down(rows int) *Terminal {
+func (t *Terminal) Down(rows int) *Terminal {
 	if rows < 0 {
-		return c.Up(-rows)
+		return t.Up(-rows)
 	}
 
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
-	c.row += rows
-	c.cursor.Down(rows)
-	c.maxRow = max(c.maxRow, c.row)
-	return c
+	t.row += rows
+	t.cursor.Down(rows)
+	t.maxRow = max(t.maxRow, t.row)
+	return t
 }
 
-func (c *Terminal) Left(cols int) *Terminal {
+func (t *Terminal) Left(cols int) *Terminal {
 	if cols < 0 {
-		return c.Right(-cols)
+		return t.Right(-cols)
 	}
 
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
-	offset := min(max(cols, 0), c.col)
-	c.col -= offset
-	c.cursor.Left(offset)
-	return c
+	offset := min(max(cols, 0), t.col)
+	t.col -= offset
+	t.cursor.Left(offset)
+	return t
 }
 
-func (c *Terminal) Right(cols int) *Terminal {
+func (t *Terminal) Right(cols int) *Terminal {
 	if cols < 0 {
-		return c.Left(-cols)
+		return t.Left(-cols)
 	}
 
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
-	c.col += cols
-	c.cursor.Right(cols)
-	return c
+	t.col += cols
+	t.cursor.Right(cols)
+	return t
 }
 
-func (c *Terminal) Top() *Terminal {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+func (t *Terminal) Top() *Terminal {
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
-	c.setRow(0)
-	return c
+	t.setRow(0)
+	return t
 }
 
-func (c *Terminal) Bottom() *Terminal {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+func (t *Terminal) Bottom() *Terminal {
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
-	return c.translateRow(c.maxRow - c.row)
+	return t.translateRow(t.maxRow - t.row)
 }
 
-func (c *Terminal) Move(row, col int) *Terminal {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+func (t *Terminal) Move(row, col int) *Terminal {
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
-	return c.translateColumn(row).translateRow(col)
+	return t.translateColumn(row).translateRow(col)
 }
 
-func (c *Terminal) MoveColumn(col int) *Terminal {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+func (t *Terminal) MoveColumn(col int) *Terminal {
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
-	return c.translateColumn(col)
+	return t.translateColumn(col)
 }
 
-func (c *Terminal) MoveRow(row int) *Terminal {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+func (t *Terminal) MoveRow(row int) *Terminal {
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
-	return c.translateRow(row)
+	return t.translateRow(row)
 }
 
-func (c *Terminal) SetPosition(row, col int) *Terminal {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+func (t *Terminal) SetPosition(row, col int) *Terminal {
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
-	return c.setRow(row).setColumn(col)
+	return t.setRow(row).setColumn(col)
 }
 
-func (c *Terminal) SetRow(n int) *Terminal {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+func (t *Terminal) SetRow(n int) *Terminal {
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
-	return c.setRow(n)
+	return t.setRow(n)
 }
 
-func (c *Terminal) SetColumn(n int) *Terminal {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+func (t *Terminal) SetColumn(n int) *Terminal {
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
-	return c.setColumn(n)
+	return t.setColumn(n)
 }
 
-func (c *Terminal) Clear() *Terminal {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+func (t *Terminal) Clear() *Terminal {
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
-	c.cursor.Clear()
-	c.col--
-	return c
+	t.cursor.Clear()
+	t.col--
+	return t
 }
 
-func (c *Terminal) ClearLine() *Terminal {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+func (t *Terminal) ClearLine() *Terminal {
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
-	c.cursor.ClearLine()
-	c.col = 0
-	return c
+	t.cursor.ClearLine()
+	t.col = 0
+	return t
 }
 
-func (c *Terminal) write(p []byte) (int, error) {
+func (t *Terminal) Line(n int) *Line {
+	return &Line{terminal: t, line: n}
+}
+
+func (t *Terminal) write(p []byte) (int, error) {
 	for _, b := range p {
 		if b == '\n' {
-			c.row++
-			c.col = 0
+			t.row++
+			t.col = 0
 			continue
 		}
 		if b == '\r' {
-			c.col = 0
+			t.col = 0
 			continue
 		}
 		if b == '\b' {
-			c.col--
+			t.col--
 			continue
 		}
-		c.col++
+		t.col++
 	}
-	c.maxRow = max(c.maxRow, c.row)
-	return c.w.Write(p)
+	t.maxRow = max(t.maxRow, t.row)
+	return t.w.Write(p)
 }
 
-func (c *Terminal) translateColumn(col int) *Terminal {
-	c.col += col
+func (t *Terminal) translateColumn(col int) *Terminal {
+	t.col += col
 	if col > 0 {
-		c.cursor.Right(col)
+		t.cursor.Right(col)
 	} else if col < 0 {
-		c.cursor.Left(-col)
+		t.cursor.Left(-col)
 	}
-	return c
+	return t
 }
 
-func (c *Terminal) translateRow(row int) *Terminal {
-	c.row += row
+func (t *Terminal) translateRow(row int) *Terminal {
+	t.row += row
 	if row > 0 {
-		c.cursor.Down(row)
+		t.cursor.Down(row)
 	} else if row < 0 {
-		c.cursor.Up(-row)
+		t.cursor.Up(-row)
 	}
-	c.maxRow = max(c.maxRow, c.row)
-	return c
+	t.maxRow = max(t.maxRow, t.row)
+	return t
 }
 
-func (c *Terminal) setRow(n int) *Terminal {
+func (t *Terminal) setRow(n int) *Terminal {
 	n = max(0, n)
 
-	delta := min(n-c.row, c.maxRow-c.row)
+	delta := min(n-t.row, t.maxRow-t.row)
 	if delta > 0 {
-		c.cursor.Down(delta)
+		t.cursor.Down(delta)
 	} else if delta < 0 {
-		c.cursor.Up(-delta)
+		t.cursor.Up(-delta)
 	}
-	c.row = n
-	return c
+	t.row = n
+	return t
 }
 
-func (c *Terminal) setColumn(n int) *Terminal {
+func (t *Terminal) setColumn(n int) *Terminal {
 	n = max(0, n)
 
-	delta := n - c.col
+	delta := n - t.col
 	if delta > 0 {
-		c.cursor.Right(delta)
+		t.cursor.Right(delta)
 	} else if delta < 0 {
-		c.cursor.Left(-delta)
+		t.cursor.Left(-delta)
 	}
-	c.col = n
-	return c
+	t.col = n
+	return t
 }

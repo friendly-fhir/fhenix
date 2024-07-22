@@ -10,6 +10,15 @@ type Spinner struct {
 	frames     []string
 }
 
+func (s *Spinner) Clone() *Spinner {
+	return &Spinner{
+		perFrame:    s.perFrame,
+		accumulator: s.accumulator,
+		lastUpdate:  s.lastUpdate,
+		frames:      s.frames,
+	}
+}
+
 func (s *Spinner) Update() string {
 	now := time.Now()
 	delta := now.Sub(s.lastUpdate)

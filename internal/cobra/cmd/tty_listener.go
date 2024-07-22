@@ -1,37 +1,34 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
-	"io"
 	"strings"
 	"sync"
 	"time"
 
-	"atomicgo.dev/cursor"
 	"github.com/friendly-fhir/fhenix/driver"
 	"github.com/friendly-fhir/fhenix/internal/ansi"
-	"github.com/friendly-fhir/fhenix/internal/snek"
 	"github.com/friendly-fhir/fhenix/internal/snek/spinner"
+	"github.com/friendly-fhir/fhenix/internal/snek/terminal"
 )
 
 type TTYListener struct {
 	offset    int
 	downloads map[string]*download
 	m         sync.Mutex
-	spinner   *spinner.Spinner
+
+	terminal *terminal.Terminal
+	spinner  *spinner.Spinner
 
 	verbose bool
-	out     io.Writer
 	driver.BaseListener
 }
 
-func NewProgressListener(ctx context.Context, verbose bool) *TTYListener {
-	out := snek.CommandOut(ctx)
+func NewProgressListener(term *terminal.Terminal, verbose bool) *TTYListener {
 	return &TTYListener{
-		out:     out,
-		verbose: verbose,
-		spinner: spinner.Dots(time.Second),
+		verbose:  verbose,
+		terminal: term,
+		spinner:  spinner.Dots(time.Second),
 	}
 }
 
@@ -39,68 +36,72 @@ func keyOf(registry, pkg, version string) string {
 	return fmt.Sprintf("%v::%s@%s", registry, pkg, version)
 }
 
+func (l *TTYListener) download(key string) *download {
+	if l.downloads == nil {
+		l.downloads = make(map[string]*download)
+	}
+	d, ok := l.downloads[key]
+	if !ok {
+		offset := l.offset
+		l.offset++
+
+		d = &download{
+			Line:    l.terminal.Line(offset),
+			Spinner: l.spinner.Clone(),
+		}
+		l.downloads[key] = d
+	}
+	return d
+}
+
 func (l *TTYListener) BeforeFetch(registry, pkg, version string) {
 	key := keyOf(registry, pkg, version)
 	l.m.Lock()
 	defer l.m.Unlock()
-	offset := l.offset
-	l.offset++
-	if l.downloads == nil {
-		l.downloads = make(map[string]*download)
-	}
-	l.downloads[key] = &download{
-		Offset: offset,
-	}
+	download := l.download(key)
+
 	name := fmt.Sprintf("%s%s%s", ansi.FGBrightWhite.Format(pkg), ansi.FGGray.Format("@"), version)
 
-	cursor.DownAndClear(offset)
-	fmt.Fprint(l.out, l.progress(name, 0, 0, nil))
-	cursor.Up(offset + 1)
+	download.Line.Print(l.progress(name, 0, 0, nil))
 }
 
 func (l *TTYListener) OnFetch(registry, pkg, version string, data int64) {
 	key := keyOf(registry, pkg, version)
 	l.m.Lock()
 	defer l.m.Unlock()
-	download := l.downloads[key]
+	download := l.download(key)
 	download.TotalBytes = data
 
 	name := fmt.Sprintf("%s%s%s", ansi.FGBrightWhite.Format(pkg), ansi.FGGray.Format("@"), version)
 
-	cursor.DownAndClear(download.Offset)
-	fmt.Fprint(l.out, l.progress(name, 0, data, nil))
-	cursor.Up(download.Offset + 1)
+	download.Line.Print(l.progress(name, 0, data, nil))
 }
 
 func (l *TTYListener) OnFetchWrite(registry, pkg, version string, data []byte) {
 	key := keyOf(registry, pkg, version)
 	l.m.Lock()
 	defer l.m.Unlock()
-	download := l.downloads[key]
+	download := l.download(key)
 	download.Current += int64(len(data))
 
 	name := fmt.Sprintf("%s%s%s", ansi.FGBrightWhite.Format(pkg), ansi.FGGray.Format("@"), version)
 
-	cursor.DownAndClear(download.Offset)
-	fmt.Fprint(l.out, l.progress(name, download.Current, download.TotalBytes, nil))
-	cursor.Up(download.Offset + 1)
+	download.Line.Print(l.progress(name, download.Current, download.TotalBytes, nil))
 }
 
 func (l *TTYListener) AfterFetch(registry, pkg, version string, err error) {
 	key := keyOf(registry, pkg, version)
 	l.m.Lock()
 	defer l.m.Unlock()
-	download := l.downloads[key]
+	download := l.download(key)
 
 	name := fmt.Sprintf("%s%s%s", ansi.FGBrightWhite.Format(pkg), ansi.FGGray.Format("@"), version)
 
-	cursor.DownAndClear(download.Offset)
 	if err != nil {
-		fmt.Fprint(l.out, valueProgress(ansi.FGRed.Format("x"), name, "error"))
+		download.Line.Print(valueProgress(ansi.FGRed.Format("x"), name, "error"))
 	} else {
-		fmt.Fprint(l.out, l.progress(name, download.Current, download.TotalBytes, nil))
+		download.Line.Print(l.progress(name, download.Current, download.TotalBytes, nil))
 	}
-	cursor.Up(download.Offset + 1)
 }
 
 func (l *TTYListener) OnCacheHit(registry, pkg, version string) {
@@ -110,23 +111,13 @@ func (l *TTYListener) OnCacheHit(registry, pkg, version string) {
 	if l.downloads == nil {
 		l.downloads = make(map[string]*download)
 	}
-	dl, ok := l.downloads[key]
-	if !ok {
-		offset := l.offset
-		l.offset++
-		dl = &download{
-			Offset: offset,
-		}
-		l.downloads[key] = dl
-	}
-	if dl.Current != 0 {
+	download := l.download(key)
+	if download.Current != 0 {
 		return
 	}
 	name := fmt.Sprintf("%s%s%s", ansi.FGBrightWhite.Format(pkg), ansi.FGGray.Format("@"), version)
 
-	cursor.DownAndClear(dl.Offset)
-	fmt.Fprint(l.out, valueProgress(ansi.FGYellow.Format("✓"), name, "cache"))
-	cursor.Up(dl.Offset + 1)
+	download.Line.Print(valueProgress(ansi.FGYellow.Format("✓"), name, "cache"))
 }
 
 var _ driver.Listener = (*TTYListener)(nil)
@@ -134,7 +125,8 @@ var _ driver.Listener = (*TTYListener)(nil)
 type download struct {
 	TotalBytes int64
 	Current    int64
-	Offset     int
+	Line       *terminal.Line
+	Spinner    *spinner.Spinner
 }
 
 func valueProgress(state, name, value string) string {

@@ -5,9 +5,9 @@ import (
 	"runtime"
 	"time"
 
-	"atomicgo.dev/cursor"
 	"github.com/friendly-fhir/fhenix/driver"
 	"github.com/friendly-fhir/fhenix/internal/snek"
+	"github.com/friendly-fhir/fhenix/internal/snek/terminal"
 	"github.com/friendly-fhir/fhenix/registry"
 )
 
@@ -60,21 +60,16 @@ func (dc *DownloadCommand) Run(ctx context.Context, args []string) error {
 		cache = registry.DefaultCache()
 	}
 	var listener driver.Listener
+	listener = NewBasicListener(ctx, dc.Verbose)
+	if term, ok := terminal.New(snek.CommandOut(ctx)); !dc.NoProgress && ok {
+		term.HideCursor()
 
-	isTTY := snek.IsTerminal(snek.CommandOut(ctx))
-	var offset *int
-	if isTTY && !dc.NoProgress {
-		l := NewProgressListener(ctx, dc.Verbose)
-		listener = l
-		offset = &l.offset
-	} else {
-		listener = NewBasicListener(ctx, dc.Verbose)
+		listener = NewProgressListener(term, dc.Verbose)
+
+		defer term.Close()
+		defer term.Bottom()
 	}
-	defer func() {
-		if offset != nil {
-			cursor.Down(*offset)
-		}
-	}()
+
 	cache.AddListener(listener)
 
 	var opts []registry.Option
