@@ -18,11 +18,12 @@ import (
 )
 
 type TTYListener struct {
-	offset     int
-	stage      int
-	downloads  map[string]*download
-	loaderPkgs map[string]*loadPackage
-	transforms map[int]*transform
+	offset         int
+	stage          int
+	downloads      map[string]*download
+	loaderPkgs     map[string]*loadPackage
+	loadTransforms map[int]*loadTransform
+	transforms     map[int]*transform
 
 	m sync.Mutex
 
@@ -39,62 +40,6 @@ func NewProgressListener(term *terminal.Terminal, verbose bool) *TTYListener {
 		terminal: term,
 		spinner:  spinner.Dots(time.Second),
 	}
-}
-
-func keyOf(registry, pkg, version string) string {
-	return fmt.Sprintf("%v::%s@%s", registry, pkg, version)
-}
-
-func (l *TTYListener) download(key string) *download {
-	if l.downloads == nil {
-		l.downloads = make(map[string]*download)
-	}
-	d, ok := l.downloads[key]
-	if !ok {
-		offset := l.offset
-		l.offset++
-
-		d = &download{
-			Line:    l.terminal.Line(offset),
-			Spinner: l.spinner.Clone(),
-		}
-		l.downloads[key] = d
-	}
-	return d
-}
-
-func (l *TTYListener) transform(n int) *transform {
-	if l.transforms == nil {
-		l.transforms = make(map[int]*transform)
-	}
-	t, ok := l.transforms[n]
-	if !ok {
-		offset := l.offset
-		l.offset++
-
-		t = &transform{
-			Line: l.terminal.Line(offset),
-		}
-		l.transforms[n] = t
-	}
-	return t
-}
-
-func (l *TTYListener) loadPackage(key string) *loadPackage {
-	if l.loaderPkgs == nil {
-		l.loaderPkgs = make(map[string]*loadPackage)
-	}
-	p, ok := l.loaderPkgs[key]
-	if !ok {
-		offset := l.offset
-		l.offset++
-
-		p = &loadPackage{
-			Line: l.terminal.Line(offset),
-		}
-		l.loaderPkgs[key] = p
-	}
-	return p
 }
 
 func (l *TTYListener) BeforeStage(s driver.Stage) {
@@ -172,6 +117,28 @@ func (l *TTYListener) AfterFetch(registry, pkg, version string, err error) {
 	}
 }
 
+func (l *TTYListener) BeforeLoadTransform(n int) {
+	l.m.Lock()
+	defer l.m.Unlock()
+
+	content := fmt.Sprintf("transform %d", n)
+	load := l.loadTransform(n)
+	load.Line.Print(l.valueProgress(ansi.FGYellow.Format("-"), content, "loading"))
+}
+
+func (l *TTYListener) AfterLoadTransform(n int, err error) {
+	l.m.Lock()
+	defer l.m.Unlock()
+
+	content := fmt.Sprintf("transform %d", n)
+	load := l.loadTransform(n)
+	if err != nil {
+		load.Line.Print(l.valueProgress(ansi.FGRed.Format("x"), content, "failed"))
+	} else {
+		load.Line.Print(l.valueProgress(ansi.FGGreen.Format("✓"), content, "loaded"))
+	}
+}
+
 func (l *TTYListener) OnCacheHit(registry, pkg, version string) {
 	key := keyOf(registry, pkg, version)
 	l.m.Lock()
@@ -210,22 +177,28 @@ func (l *TTYListener) AfterLoadPackage(ref registry.PackageRef, err error) {
 	}
 }
 
-func (l *TTYListener) BeforeTransform(i int) {
+func (l *TTYListener) BeforeTransform(i int, jobs int) {
 	l.m.Lock()
 	defer l.m.Unlock()
 
 	content := fmt.Sprintf("transform %d", i)
 	transform := l.transform(i)
-	transform.Line.Print(l.valueProgress(ansi.FGYellow.Format("-"), content, "transforming"))
+	transform.Jobs = jobs
+	completion := fmt.Sprintf("(%d / %d)", 0, jobs)
+	suffix := fmt.Sprintf("%3d%% %-12s", 0, completion)
+	transform.Line.Print(l.valueProgress(ansi.FGYellow.Format("-"), content, suffix))
 }
 
-func (l *TTYListener) OnTransform(i int, output string) {
+func (l *TTYListener) OnTransformOutput(i int, output string) {
 	l.m.Lock()
 	defer l.m.Unlock()
 
 	content := l.transformPrefix(i, output)
 	transform := l.transform(i)
-	transform.Line.Print(l.valueProgress(ansi.FGYellow.Format("-"), content, "transforming"))
+	percent := int(float64(transform.Current) / float64(transform.Jobs) * 100.00)
+	completion := fmt.Sprintf("(%d / %d)", transform.Current, transform.Jobs)
+	suffix := fmt.Sprintf("%3d%% %-12s", percent, completion)
+	transform.Line.Print(l.valueProgress(transform.Spinner.Update(), content, suffix))
 }
 
 func (l *TTYListener) transformPrefix(i int, output string) string {
@@ -239,17 +212,22 @@ func (l *TTYListener) transformPrefix(i int, output string) string {
 	}
 	return fmt.Sprintf("transform %d (%s)", i, ansi.FGGray.Format(path))
 }
-
 func (l *TTYListener) AfterTransformOutput(i int, output string, err error) {
 	l.m.Lock()
 	defer l.m.Unlock()
 
-	content := l.transformPrefix(i, output)
+	content := fmt.Sprintf("transform %d", i)
 	transform := l.transform(i)
+	transform.Current++
+	percent := int(float64(transform.Current) / float64(transform.Jobs) * 100.00)
+	completion := fmt.Sprintf("(%d / %d)", transform.Current, transform.Jobs)
+	suffix := fmt.Sprintf("%3d%% %-12s", percent, completion)
 	if err != nil {
-		transform.Line.Print(l.valueProgress(ansi.FGRed.Format("x"), content, "error"))
+		transform.Line.Print(l.valueProgress(ansi.FGRed.Format("x"), content, suffix))
+	} else if transform.Current == transform.Jobs {
+		transform.Line.Print(l.valueProgress(ansi.FGGreen.Format("✓"), content, suffix))
 	} else {
-		transform.Line.Print(l.valueProgress(ansi.FGGreen.Format("✓"), content, "done"))
+		transform.Line.Print(l.valueProgress(transform.Spinner.Update(), content, suffix))
 	}
 }
 
@@ -266,8 +244,15 @@ type loadPackage struct {
 	Line *terminal.Line
 }
 
-type transform struct {
+type loadTransform struct {
 	Line *terminal.Line
+}
+
+type transform struct {
+	Line    *terminal.Line
+	Jobs    int
+	Current int
+	Spinner *spinner.Spinner
 }
 
 func (l *TTYListener) valueProgress(state, name, suffix string) string {
@@ -322,4 +307,78 @@ func (l *TTYListener) progress(name string, from, to int64, err error) string {
 	suffix := fmt.Sprintf("(%v / %v)", fromStr, toStr)
 	value := fmt.Sprintf("%3d%% %-28s", percent, suffix)
 	return l.valueProgress(state, name, value)
+}
+
+func keyOf(registry, pkg, version string) string {
+	return fmt.Sprintf("%v::%s@%s", registry, pkg, version)
+}
+
+func (l *TTYListener) download(key string) *download {
+	if l.downloads == nil {
+		l.downloads = make(map[string]*download)
+	}
+	d, ok := l.downloads[key]
+	if !ok {
+		offset := l.offset
+		l.offset++
+
+		d = &download{
+			Line:    l.terminal.Line(offset),
+			Spinner: l.spinner.Clone(),
+		}
+		l.downloads[key] = d
+	}
+	return d
+}
+
+func (l *TTYListener) transform(n int) *transform {
+	if l.transforms == nil {
+		l.transforms = make(map[int]*transform)
+	}
+	t, ok := l.transforms[n]
+	if !ok {
+		offset := l.offset
+		l.offset++
+
+		t = &transform{
+			Line:    l.terminal.Line(offset),
+			Spinner: l.spinner.Clone(),
+		}
+		l.transforms[n] = t
+	}
+	return t
+}
+
+func (l *TTYListener) loadPackage(key string) *loadPackage {
+	if l.loaderPkgs == nil {
+		l.loaderPkgs = make(map[string]*loadPackage)
+	}
+	p, ok := l.loaderPkgs[key]
+	if !ok {
+		offset := l.offset
+		l.offset++
+
+		p = &loadPackage{
+			Line: l.terminal.Line(offset),
+		}
+		l.loaderPkgs[key] = p
+	}
+	return p
+}
+
+func (l *TTYListener) loadTransform(n int) *loadTransform {
+	if l.loadTransforms == nil {
+		l.loadTransforms = make(map[int]*loadTransform)
+	}
+	t, ok := l.loadTransforms[n]
+	if !ok {
+		offset := l.offset
+		l.offset++
+
+		t = &loadTransform{
+			Line: l.terminal.Line(offset),
+		}
+		l.loadTransforms[n] = t
+	}
+	return t
 }

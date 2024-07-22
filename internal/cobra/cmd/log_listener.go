@@ -21,7 +21,8 @@ func NewLogListener(w io.Writer, verbose bool) *Listener {
 		flags = log.LstdFlags
 	}
 	return &Listener{
-		out: log.New(w, "", flags),
+		out:     log.New(w, "", flags),
+		verbose: verbose,
 	}
 }
 
@@ -97,9 +98,9 @@ func (l *Listener) OnTransformOutput(n int, output string) {
 	}
 }
 
-func (l *Listener) BeforeTransform(n int) {
+func (l *Listener) BeforeTransform(n, jobs int) {
 	if l.verbose {
-		l.out.Printf("transform(%d): starting", n)
+		l.out.Printf("transform(%d): starting (%d jobs)", n, jobs)
 	}
 }
 

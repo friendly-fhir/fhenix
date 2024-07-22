@@ -49,7 +49,10 @@ type Listener interface {
 	BeforeStage(stage Stage)
 	AfterStage(stage Stage, err error)
 
-	BeforeTransform(n int)
+	BeforeLoadTransform(n int)
+	AfterLoadTransform(n int, err error)
+
+	BeforeTransform(n int, jobs int)
 	OnTransformOutput(n int, output string)
 	AfterTransformOutput(n int, output string, err error)
 
@@ -65,7 +68,10 @@ type BaseListener struct {
 func (BaseListener) BeforeStage(Stage)       {}
 func (BaseListener) AfterStage(Stage, error) {}
 
-func (BaseListener) BeforeTransform(i int)                                {}
+func (BaseListener) BeforeLoadTransform(n int)           {}
+func (BaseListener) AfterLoadTransform(n int, err error) {}
+
+func (BaseListener) BeforeTransform(i, jobs int)                          {}
 func (BaseListener) OnTransformOutput(i int, output string)               {}
 func (BaseListener) AfterTransformOutput(i int, output string, err error) {}
 
@@ -205,8 +211,14 @@ func (d *Driver) LoadTransforms() ([]*transform.Transform, error) {
 
 	var errs []error
 	transforms := make([]*transform.Transform, 0, len(d.transformConfigs))
-	for _, t := range d.transformConfigs {
+	for i, t := range d.transformConfigs {
+		for _, listener := range d.listeners {
+			listener.BeforeLoadTransform(i)
+		}
 		t, err := transform.New(d.mode, t, transform.WithFuncs(Funcs), transform.WithReporter(d.reporter))
+		for _, listener := range d.listeners {
+			listener.AfterLoadTransform(i, err)
+		}
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -258,7 +270,7 @@ func (d *Driver) Transform(ctx context.Context, model *model.Model, transforms [
 	for i, t := range transforms {
 		jobs, err := job.New(model, d.outputPath, t)
 		for _, listener := range d.listeners {
-			listener.BeforeTransform(i)
+			listener.BeforeTransform(i, len(jobs))
 		}
 		if err != nil {
 			return err
