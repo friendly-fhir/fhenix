@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/friendly-fhir/fhenix/driver"
 	"github.com/friendly-fhir/fhenix/internal/ansi"
@@ -98,7 +99,7 @@ func (l *TTYListener) AfterFetch(registry, pkg, version string, err error) {
 	name := fmt.Sprintf("%s%s%s", ansi.FGBrightWhite.Format(pkg), ansi.FGGray.Format("@"), version)
 
 	if err != nil {
-		download.Line.Print(valueProgress(ansi.FGRed.Format("x"), name, "error"))
+		download.Line.Print(l.valueProgress(ansi.FGRed.Format("x"), name, "error"))
 	} else {
 		download.Line.Print(l.progress(name, download.Current, download.TotalBytes, nil))
 	}
@@ -117,7 +118,7 @@ func (l *TTYListener) OnCacheHit(registry, pkg, version string) {
 	}
 	name := fmt.Sprintf("%s%s%s", ansi.FGBrightWhite.Format(pkg), ansi.FGGray.Format("@"), version)
 
-	download.Line.Print(valueProgress(ansi.FGYellow.Format("✓"), name, "cache"))
+	download.Line.Print(l.valueProgress(ansi.FGYellow.Format("✓"), name, "cache"))
 }
 
 var _ driver.Listener = (*TTYListener)(nil)
@@ -129,30 +130,33 @@ type download struct {
 	Spinner    *spinner.Spinner
 }
 
-func valueProgress(state, name, value string) string {
-	const (
-		maxLength = 50
-	)
+func (l *TTYListener) valueProgress(state, name, suffix string) string {
 	var (
 		sb strings.Builder
 	)
+	const (
+		minLength = 59
+		maxLength = 119
+	)
+	length := max(min(l.terminal.Width()-1, maxLength), minLength)
 	fmt.Fprintf(&sb, "[%s] %s", state, name)
-	beginning := ansi.StripFormat(sb.String())
-	if len(beginning) < maxLength {
-		dots := " " + strings.Repeat(".", maxLength-len(beginning))
+	prefixRunes := utf8.RuneCountInString(ansi.StripFormat(sb.String()))
+	suffixRunes := utf8.RuneCountInString(ansi.StripFormat(suffix))
+	reserved := prefixRunes + suffixRunes
+	dots := length - reserved
+	if reserved < 0 {
+		dots = 0
+	}
+
+	if dots != 0 {
+		dots := " " + strings.Repeat(".", dots)
 		sb.WriteString(ansi.FGGray.Format(dots))
 	}
-	fmt.Fprintf(&sb, " %v\n", value)
+	fmt.Fprintf(&sb, " %v\n", suffix)
 	return sb.String()
 }
 
 func (l *TTYListener) progress(name string, from, to int64, err error) string {
-	const (
-		maxLength = 50
-	)
-	var (
-		sb strings.Builder
-	)
 	state := l.spinner.Update()
 	if from == 0 {
 		state = ansi.FGYellow.Format("-")
@@ -161,12 +165,6 @@ func (l *TTYListener) progress(name string, from, to int64, err error) string {
 	}
 	if err != nil {
 		state = ansi.FGRed.Format("x")
-	}
-	fmt.Fprintf(&sb, "[%s] %s", state, name)
-	beginning := ansi.StripFormat(sb.String())
-	if len(beginning) < maxLength {
-		dots := " " + strings.Repeat(".", maxLength-len(beginning))
-		sb.WriteString(ansi.FGGray.Format(dots))
 	}
 
 	percent := 0
@@ -180,11 +178,10 @@ func (l *TTYListener) progress(name string, from, to int64, err error) string {
 	if to > 0 {
 		toStr = toDataUnit(to)
 	}
-	if len(toStr) > len(fromStr) {
-		fromStr = strings.Repeat(" ", len(toStr)-len(fromStr)) + fromStr
-	}
-	fmt.Fprintf(&sb, " % 4d%% (%v / %v)\n", percent, fromStr, toStr)
-	return sb.String()
+
+	suffix := fmt.Sprintf("(%v / %v)", fromStr, toStr)
+	value := fmt.Sprintf("%3d%% %-28s", percent, suffix)
+	return l.valueProgress(state, name, value)
 }
 
 func toDataUnit(units int64) string {

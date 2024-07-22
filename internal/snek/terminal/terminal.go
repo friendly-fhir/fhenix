@@ -80,6 +80,7 @@ func (t *Terminal) Print(n int, args ...any) (int, error) {
 	defer t.lock.Unlock()
 	t.setRow(n)
 	t.setColumn(0)
+	t.cursor.ClearLine()
 	return t.write([]byte(formatted))
 }
 
@@ -91,6 +92,7 @@ func (t *Terminal) Printf(n int, format string, args ...any) (int, error) {
 	defer t.lock.Unlock()
 	t.setRow(n)
 	t.setColumn(0)
+	t.cursor.ClearLine()
 	return t.write([]byte(formatted))
 }
 
