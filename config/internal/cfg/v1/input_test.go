@@ -33,30 +33,28 @@ func TestInput(t *testing.T) {
 		{
 			name: "valid input",
 			input: lines(
-				`package:`,
-				`  name: hl7.fhir.r4.core`,
-				`  version: "4.0.1"`,
-				`include-dependencies: true`,
+				`packages:`,
+				`  - name: hl7.fhir.r4.core`,
+				`    version: "4.0.1"`,
 			),
 			want: &cfg.Input{
-				Package: &cfg.InputPackage{
-					Name:    "hl7.fhir.r4.core",
-					Version: "4.0.1",
+				Packages: []*cfg.InputPackage{
+					{
+						Name:    "hl7.fhir.r4.core",
+						Version: "4.0.1",
+					},
 				},
-				IncludeDependencies: true,
 			},
 		}, {
-			name: "missing package",
-			input: lines(
-				`include-dependencies: true`,
-			),
+			name:    "missing package",
+			input:   lines("packages:"),
 			wantErr: rootcfg.ErrMissingField,
 		}, {
 			name: "invalid package",
 			input: lines(
-				`package:`,
-				`  name: hl7.fhir.r4.core`,
-				`  version: "hello.world"`,
+				`packages:`,
+				`  - name: hl7.fhir.r4.core`,
+				`    version: "hello.world"`,
 			),
 			wantErr: rootcfg.ErrInvalidField,
 		}, {

@@ -171,9 +171,9 @@ func New(config *config.Config, opts ...Option) (*Driver, error) {
 
 		forceDownload:    false,
 		transformConfigs: config.Transforms,
-		explicitPackages: []registry.PackageRef{
-			registry.NewPackageRef("default", config.Input.Name, config.Input.Version),
-		},
+	}
+	for _, pkg := range config.Input {
+		driver.explicitPackages = append(driver.explicitPackages, registry.NewPackageRef("default", pkg.Name, pkg.Version))
 	}
 	for _, opt := range opts {
 		opt.set(driver)

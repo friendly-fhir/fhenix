@@ -22,8 +22,8 @@ type Config struct {
 	// OutputDir is the output directory where generated output will be written.
 	OutputDir string
 
-	// Input is a package input.
-	Input *Package
+	// Input are the packages that will be used as input for the generation.
+	Input []*Package
 
 	// Transforms contains a list of transforms to be applied to the input
 	// definitions.
@@ -42,10 +42,6 @@ type Package struct {
 	// If specified, this will override the package being fetched from the
 	// package registry.
 	Path string
-
-	// IncludeDependencies is a flag to indicate whether dependencies of the
-	// package should be included in the generation.
-	IncludeDependencies bool
 }
 
 // Transform is a configuration for transforming input entities into templated

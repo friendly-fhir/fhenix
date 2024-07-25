@@ -9,15 +9,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Input is a configuration node for specifying the input package.
+// Input is a configuration node for specifying the packages.
 type Input struct {
-	// Package is the name of the input package to parse (mandatory).
-	Package *InputPackage `yaml:"package"`
-
-	// IncludeDependencies is an optional field that will include dependencies
-	// of the package when passing contents to the generator. The default for this
-	// is false.
-	IncludeDependencies bool `yaml:"include-dependencies"`
+	// Packages is the name of the packages to parse (mandatory).
+	Packages []*InputPackage `yaml:"packages"`
 }
 
 func (i *Input) UnmarshalYAML(node *yaml.Node) error {
@@ -27,8 +22,9 @@ func (i *Input) UnmarshalYAML(node *yaml.Node) error {
 		return err
 	}
 
-	if out.Package == nil {
-		return &cfg.FieldError{Field: "input.package", Err: cfg.ErrMissingField}
+	// At least one "packages" field must be specified.
+	if len(out.Packages) == 0 {
+		return &cfg.FieldError{Field: "input.packages", Err: cfg.ErrMissingField}
 	}
 	*i = Input(out)
 
