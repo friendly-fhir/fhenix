@@ -21,11 +21,14 @@ func FromFile(file string, options ...Option) (*Config, error) {
 	var opts opts.Options
 	opts.Apply(options...)
 
-	if opts.RootDir == "" {
-		opts.RootDir, err = filepath.Abs(filepath.Dir(filepath.FromSlash(file)))
-		if err != nil {
-			return nil, err
-		}
+	root := opts.RootDir
+	if root == "" {
+		root = filepath.Dir(filepath.FromSlash(file))
+	}
+
+	opts.RootDir, err = filepath.Abs(root)
+	if err != nil {
+		return nil, err
 	}
 	return from(data, &opts)
 }

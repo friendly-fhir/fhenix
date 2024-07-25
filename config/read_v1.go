@@ -25,13 +25,12 @@ func fromV1(data []byte, opts *opts.Options) (*Config, error) {
 	}
 
 	var err error
-	if cfg.OutputDir != "" {
+	if opts.OutputDir != "" {
+		result.OutputDir, err = opts.RootPath(opts.OutputDir)
+	} else if cfg.OutputDir != "" {
 		result.OutputDir, err = opts.RootPath(cfg.OutputDir)
-		if err != nil {
-			return nil, err
-		}
 	} else {
-		result.OutputDir, err = opts.OutputPath("")
+		result.OutputDir, err = opts.OutputPath("dist")
 	}
 	if err != nil {
 		return nil, err

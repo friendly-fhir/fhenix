@@ -18,6 +18,7 @@ import (
 
 type RunCommand struct {
 	Output string
+	Root   string
 
 	Parallel  int
 	Force     bool
@@ -62,6 +63,7 @@ func (rc *RunCommand) Flags() []*snek.FlagSet {
 	output := snek.NewFlagSet("Output")
 	output.Bool(&rc.RM, "rm", false, "Remove all contents from the output directory prior to writing")
 	output.StringP(&rc.Output, "output", "o", "", "The output directory to write the generated code to")
+	output.String(&rc.Root, "root", "", "The root directory to consider all paths relative to")
 	output.String(&rc.FHIRCache, "fhir-cache", "", "The configuration path to download the FHIR IGs to")
 	output.BoolP(&rc.Verbose, "verbose", "v", false, "Enable verbose output")
 	output.Bool(&rc.NoProgress, "no-progress", false, "Disable progress output")
@@ -78,7 +80,14 @@ func (rc *RunCommand) Run(ctx context.Context, args []string) error {
 		return snek.UsageError("expected exactly one argument")
 	}
 
-	cfg, err := config.FromFile(args[0])
+	var cfgopts []config.Option
+	if rc.Output != "" {
+		cfgopts = append(cfgopts, config.WithOutputDir(rc.Output))
+	}
+	if rc.Root != "" {
+		cfgopts = append(cfgopts, config.WithRootDir(rc.Root))
+	}
+	cfg, err := config.FromFile(args[0], cfgopts...)
 	if err != nil {
 		return err
 	}
