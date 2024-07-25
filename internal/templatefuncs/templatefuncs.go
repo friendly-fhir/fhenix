@@ -13,6 +13,7 @@ func NewFuncs(reporter Reporter) map[string]any {
 		"base64": get(&Base64Module{Reporter: reporter}),
 		"base32": get(&Base32Module{Reporter: reporter}),
 		"gzip":   get(&GZipModule{Reporter: reporter}),
+		"list":   get(&ListModule{Reporter: reporter}),
 
 		"html": get(&HTMLModule{}),
 
