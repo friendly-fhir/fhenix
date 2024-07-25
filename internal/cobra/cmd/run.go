@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/friendly-fhir/fhenix/config"
 	"github.com/friendly-fhir/fhenix/driver"
+	"github.com/friendly-fhir/fhenix/internal/set"
 	"github.com/friendly-fhir/fhenix/internal/snek"
 	"github.com/friendly-fhir/fhenix/internal/snek/terminal"
 	"github.com/friendly-fhir/fhenix/registry"
@@ -119,8 +121,12 @@ func (rc *RunCommand) Run(ctx context.Context, args []string) error {
 		defer cancel()
 	}
 
+	var m sync.Mutex
+	var warnings []error
 	reporter := func(cause error) {
-		snek.Warningf(ctx, "template error: %v", cause)
+		m.Lock()
+		defer m.Unlock()
+		warnings = append(warnings, cause)
 	}
 
 	opts := []driver.Option{
@@ -134,6 +140,16 @@ func (rc *RunCommand) Run(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	defer func() {
+		seen := set.New[string]()
+		for _, warning := range warnings {
+			seen.Add(warning.Error())
+		}
+		for warning := range seen {
+			snek.Warningf(ctx, "template error: %v", warning)
+		}
+	}()
 
 	return driver.Run(ctx)
 }
