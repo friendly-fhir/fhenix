@@ -1,5 +1,5 @@
-#ifndef FHIR_{{- .Name | shoutcase -}}_HPP
-#define FHIR_{{- .Name | shoutcase -}}_HPP
+#ifndef FHIR_{{- .Name | string.Shout -}}_HPP
+#define FHIR_{{- .Name | string.Shout -}}_HPP
 
 #pragma once
 
@@ -8,17 +8,17 @@
 namespace fhir {
 
 {{ with .Short -}}
-{{ . | resize 74 | prefix "  // " }}
+{{ . | lines.Resize 74 | lines.Prefix "  // " }}
 {{- end -}}
 {{- with .Description -}}
-{{ . | resize 74 | prefix "  // " }}
+{{ . | lines.Resize 74 | lines.Prefix "  // " }}
 {{- end -}}
 {{- with .Comment -}}
-{{ . | resize 74 | prefix "  // " }}
+{{ . | lines.Resize 74 | lines.Prefix "  // " }}
 {{- end }}
-  struct {{ .Name | pascalcase }} {
+  struct {{ .Name | string.Pascal }} {
     // ...
   };
 }
 
-#endif // FHIR_META_{{- .Name | shoutcase -}}_HPP
+#endif // FHIR_META_{{- .Name | string.Shout -}}_HPP

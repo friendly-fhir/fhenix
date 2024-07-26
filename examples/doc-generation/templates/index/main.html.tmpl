@@ -1,8 +1,8 @@
 <ul>
 {{ range .StructureDefinitions }}
   <li>
-    <a href="{{ .Name | snakecase }}.html" title="{{ .Name }}">
-      {{ .Name | pascalcase }}
+    <a href="{{ .Name | string.Snake }}.html" title="{{ .Name }}">
+      {{ .Name | string.Pascal }}
     </a>
   </li>
 {{ end }}

@@ -4,10 +4,9 @@ version: 1
 
 # The name and version of the FHIR Package, as found on simplifier.net
 input:
-  package:
-    name: hl7.fhir.r4.core
-    version: "4.0.1"
-  include-dependencies: false
+  packages:
+    - name: hl7.fhir.r4.core
+      version: "4.0.1"
 
 mode: html
 
@@ -23,7 +22,7 @@ transforms:
   - include:
       - type: StructureDefinition
         condition: '{{ and (eq .Kind "primitive-type") .IsSpecialization }}'
-    output-path: 'fhir/{{- .Name | snakecase -}}.html'
+    output-path: 'fhir/{{- .Name | string.Snake -}}.html'
     templates:
       structure-definition: 'templates/elements/structure-definition.html.tmpl'
   - include:

@@ -68,6 +68,25 @@ jobs:
     permissions:
       contents: read
 
+  test-examples:
+    name: Test Examples
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.22
+      - name: Install Fhenix
+        run: go install .
+      - name: Generate examples/code-generation
+        run: fhenix run examples/code-generation/fhenix.yaml
+      - name: Generate examples/doc-generation
+        run: fhenix run examples/doc-generation/fhenix.yaml
+
   build-docs:
     name: Generate Documentation
     uses: ./.github/workflows/build-docs.yaml
@@ -83,6 +102,7 @@ jobs:
       - build-docs
       - license-manifest
       - vulnerability-scanning
+      - test-examples
       - go-lint
       - markdown-lint
     steps:
