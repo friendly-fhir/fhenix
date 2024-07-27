@@ -2,7 +2,6 @@ package archive
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"io"
 )
 
@@ -38,19 +37,27 @@ func Filter(fn func(string) bool) Option {
 	})
 }
 
+func Decompressed() Option {
+	return option(func(a *Archive) {
+		a.compressed = true
+	})
+}
+
 // Archive represents a FHIR IG package in an archived format.
 type Archive struct {
-	reader    io.Reader
-	transform func(string) string
-	filter    func(string) bool
+	reader     io.Reader
+	transform  func(string) string
+	filter     func(string) bool
+	compressed bool
 }
 
 // New creates a new archive from a reader.
 func New(r io.Reader, opts ...Option) *Archive {
 	archive := &Archive{
-		reader:    r,
-		transform: func(s string) string { return s },
-		filter:    func(s string) bool { return true },
+		reader:     r,
+		transform:  func(s string) string { return s },
+		filter:     func(s string) bool { return true },
+		compressed: false,
 	}
 	for _, opt := range opts {
 		opt.apply(archive)
@@ -61,14 +68,7 @@ func New(r io.Reader, opts ...Option) *Archive {
 // Unpack visits each file in the archive, calling the provided function
 // with the name and file reader.
 func (a *Archive) Unpack(visitor Unpacker) error {
-	var err error
-	var reader io.ReadCloser
-	reader, err = gzip.NewReader(a.reader)
-	if err != nil {
-		reader = io.NopCloser(a.reader)
-	}
-	defer reader.Close()
-	tarReader := tar.NewReader(reader)
+	tarReader := tar.NewReader(a.reader)
 	for {
 		header, err := tarReader.Next()
 		if err == io.EOF {

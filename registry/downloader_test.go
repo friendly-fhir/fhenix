@@ -2,7 +2,7 @@ package registry_test
 
 import (
 	"context"
-	_ "embed"
+	"embed"
 	"errors"
 	"testing"
 	"time"
@@ -14,27 +14,29 @@ import (
 )
 
 var (
-	//go:embed testdata/leaf-package/package.tar.gz
-	leafArchive []byte
+	//go:embed testdata/leaf-package
+	leafPackage embed.FS
 
-	//go:embed testdata/dependent-package-one/package.tar.gz
-	dependentArchiveOne []byte
+	//go:embed testdata/dependent-package-one
+	dependentPackageOne embed.FS
 
-	//go:embed testdata/dependent-package-two/package.tar.gz
-	dependentArchiveTwo []byte
+	//go:embed testdata/dependent-package-two
+	dependentPackageTwo embed.FS
 )
 
 func TestDownloader(t *testing.T) {
+	t.Parallel()
+
 	const (
 		registryName = "test"
 		version      = "1.0.0"
 	)
 	testErr := errors.New("error")
 	client := registrytest.NewFakeClient()
-	client.SetOK("test.package", version, goodArchive)
-	client.SetOK("dependent.package.one", version, dependentArchiveOne)
-	client.SetOK("dependent.package.two", version, dependentArchiveTwo)
-	client.SetOK("leaf.package", version, leafArchive)
+	client.SetGzipTarball("test.package", version, goodArchive)
+	client.SetTarballFS("dependent.package.one", version, dependentPackageOne)
+	client.SetTarballFS("dependent.package.two", version, dependentPackageTwo)
+	client.SetTarballFS("leaf.package", version, leafPackage)
 	client.SetError("bad.package", version, testErr)
 
 	testCases := []struct {
@@ -112,7 +114,7 @@ func TestDownloader(t *testing.T) {
 			cache := registry.NewCache(dir)
 			cache.AddClient(registryName, client.Client)
 
-			downloader := registry.NewDownloader(cache).Force(tc.force).Workers(0)
+			downloader := registry.NewDownloader(cache).Force(tc.force)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()

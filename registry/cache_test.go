@@ -19,8 +19,8 @@ import (
 func TestCache_Fetch(t *testing.T) {
 	testErr := errors.New("test error")
 	client := registrytest.NewFakeClient()
-	client.SetOK("test.package", "1.0.0", goodArchive)
-	client.SetOK("test.package", "2.0.0", goodArchive)
+	client.SetTarballFS("test.package", "1.0.0", leafPackage)
+	client.SetTarballFS("test.package", "2.0.0", leafPackage)
 	client.SetError("fail.package", "1.0.0", testErr)
 
 	testCases := []struct {
@@ -82,7 +82,7 @@ func TestCache_Fetch(t *testing.T) {
 func TestCache_ForceFetch(t *testing.T) {
 	testErr := errors.New("test error")
 	client := registrytest.NewFakeClient()
-	client.SetOK("test.package", "1.0.0", goodArchive)
+	client.SetGzipTarball("test.package", "1.0.0", goodArchive)
 	client.SetError("fail.package", "1.0.0", testErr)
 
 	testCases := []struct {
@@ -150,8 +150,8 @@ func readManifest(t *testing.T, path string) *registry.PackageManifest {
 func TestCache_Get(t *testing.T) {
 	testErr := errors.New("test error")
 	client := registrytest.NewFakeClient()
-	client.SetOK("test.package", "1.0.0", goodArchive)
-	client.SetOK("test.package", "2.0.0", goodArchive)
+	client.SetGzipTarball("test.package", "1.0.0", goodArchive)
+	client.SetGzipTarball("test.package", "2.0.0", goodArchive)
 	client.SetError("fail.package", "1.0.0", testErr)
 
 	testCases := []struct {
@@ -247,7 +247,7 @@ func TestCache_Get_InvokesListener(t *testing.T) {
 		version      = "1.0.0"
 	)
 	client := registrytest.NewFakeClient()
-	client.SetOK(pkg, version, goodArchive)
+	client.SetGzipTarball(pkg, version, goodArchive)
 
 	listener := registrytest.NewCacheListener()
 
@@ -277,8 +277,8 @@ func TestCache_Get_InvokesListener(t *testing.T) {
 func TestCache_GetOrFetch(t *testing.T) {
 	testErr := errors.New("test error")
 	client := registrytest.NewFakeClient()
-	client.SetOK("test.package", "1.0.0", goodArchive)
-	client.SetOK("test.package", "2.0.0", goodArchive)
+	client.SetGzipTarball("test.package", "1.0.0", goodArchive)
+	client.SetGzipTarball("test.package", "2.0.0", goodArchive)
 	client.SetError("fail.package", "1.0.0", testErr)
 
 	testCases := []struct {
@@ -362,7 +362,7 @@ func TestCache_GetOrFetch(t *testing.T) {
 
 func TestCache_Delete(t *testing.T) {
 	client := registrytest.NewFakeClient()
-	client.SetOK("test.package", "2.0.0", goodArchive)
+	client.SetGzipTarball("test.package", "2.0.0", goodArchive)
 
 	testCases := []struct {
 		name     string

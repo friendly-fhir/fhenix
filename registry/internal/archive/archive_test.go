@@ -3,6 +3,7 @@ package archive_test
 import (
 	"bytes"
 	stdcmp "cmp"
+	"compress/gzip"
 	_ "embed"
 	"io"
 	"strings"
@@ -26,23 +27,26 @@ var (
 
 func TestVisitFiles(t *testing.T) {
 	testCases := []struct {
-		name      string
-		contents  []byte
-		filter    func(s string) bool
-		transform func(s string) string
-		want      []string
-		wantErr   error
+		name       string
+		contents   []byte
+		filter     func(s string) bool
+		transform  func(s string) string
+		compressed bool
+		want       []string
+		wantErr    error
 	}{
 		{
-			name:     "good package",
-			contents: goodArchive,
+			name:       "good package",
+			contents:   goodArchive,
+			compressed: true,
 			want: []string{
 				"good-package/package.json",
 				"good-package/StructureDefinition-foo.json",
 			},
 		}, {
-			name:     "good package with filter",
-			contents: goodArchive,
+			name:       "good package with filter",
+			contents:   goodArchive,
+			compressed: true,
 			filter: func(s string) bool {
 				return s == "good-package/package.json"
 			},
@@ -50,8 +54,9 @@ func TestVisitFiles(t *testing.T) {
 				"good-package/package.json",
 			},
 		}, {
-			name:     "good package with transform",
-			contents: goodArchive,
+			name:       "good package with transform",
+			contents:   goodArchive,
+			compressed: true,
 			transform: func(s string) string {
 				return strings.TrimPrefix(s, "good-package/")
 			},
@@ -66,7 +71,9 @@ func TestVisitFiles(t *testing.T) {
 		}, {
 			name:     "uncompressed package",
 			contents: uncompressedArchive,
-			wantErr:  cmpopts.AnyError,
+			want: []string{
+				"uncompressed-package/StructureDefinition-foo.json",
+			},
 		},
 	}
 
@@ -79,7 +86,16 @@ func TestVisitFiles(t *testing.T) {
 			if tc.transform != nil {
 				opts = append(opts, archive.Transform(tc.transform))
 			}
-			sut := archive.New(bytes.NewReader(tc.contents), opts...)
+			var reader io.Reader = bytes.NewReader(tc.contents)
+			if tc.compressed {
+				r, err := gzip.NewReader(reader)
+				if err != nil {
+					t.Fatalf("gzip.NewReader() failed: %v", err)
+				}
+				reader = r
+				defer r.Close()
+			}
+			sut := archive.New(reader, opts...)
 
 			var got []string
 			err := sut.Unpack(archive.UnpackFunc(func(s string, _ int64, _ io.Reader) error {

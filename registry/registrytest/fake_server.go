@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -40,12 +41,28 @@ func (f *FakeServer) Close() {
 	f.server.Close()
 }
 
-// SetIndirectTarball adds a package to the fake server that redirects to
+// SetIndirectGzipTarball adds a package to the fake server that redirects to
 // another URL for the tarball content.
-func (f *FakeServer) SetIndirectTarball(name, version string, reader io.Reader) {
+func (f *FakeServer) SetIndirectGzipTarball(name, version string, content []byte) {
+	f.setIndirect(name, version, "application/tar+gzip", content)
+}
+
+// SetIndirectTarball adds a package to the fake server that redirects to
+func (f *FakeServer) SetIndirectTarball(name, version string, content []byte) {
+	f.setIndirect(name, version, "application/tar", content)
+}
+
+// SetIndirectTarballFS sets the indirect tarball response for the given package
+// and version, done as a filesystem.
+func (f *FakeServer) SetIndirectTarballFS(name, version string, fs fs.FS) {
+	f.SetIndirectTarball(name, version, TarballBytes(fs))
+}
+
+func (f *FakeServer) setIndirect(name, version, contentType string, content []byte) {
 	redirectPattern := fmt.Sprintf("/%s/-/%s-%s.tar.gz", name, filepath.Base(name), version)
 	redirect := fmt.Sprintf("%s%s", f.server.URL, redirectPattern)
 
+	reader := bytes.NewReader(content)
 	br := bytes.NewBuffer(nil)
 	sha := sha1.New()
 
@@ -79,21 +96,32 @@ func (f *FakeServer) SetIndirectTarball(name, version string, reader io.Reader) 
 		}
 	})
 
-	f.setContent(redirectPattern, "application/gzip", br)
+	f.setContent(redirectPattern, contentType, br.Bytes())
 }
 
 // SetTarball adds a package to the fake server.
-func (f *FakeServer) SetTarball(name, version string, reader io.Reader) {
-	f.setContent(fmt.Sprintf("/%s/%s", name, version), "application/gzip", reader)
+func (f *FakeServer) SetTarball(name, version string, bytes []byte) {
+	f.setContent(fmt.Sprintf("/%s/%s", name, version), "application/tar", bytes)
+}
+
+// SetGzipTarball adds a gzipped tarball to the fake server.
+func (f *FakeServer) SetGzipTarball(name, version string, bytes []byte) {
+	f.setContent(fmt.Sprintf("/%s/%s", name, version), "application/tar+gzip", bytes)
+}
+
+// SetTarballFS sets the tarball response for the given package and version,
+// done as a filesystem.
+func (f *FakeServer) SetTarballFS(name, version string, fs fs.FS) {
+	f.SetTarball(name, version, TarballBytes(fs))
 }
 
 // SetContent sets the content response that will be returned by the server
 // for the given package.
-func (f *FakeServer) SetContent(name, version, contentType string, reader io.Reader) {
-	f.setContent(fmt.Sprintf("/%s/%s", name, version), contentType, reader)
+func (f *FakeServer) SetContent(name, version, contentType string, bytes []byte) {
+	f.setContent(fmt.Sprintf("/%s/%s", name, version), contentType, bytes)
 }
 
-func (f *FakeServer) setContent(pattern, contentType string, reader io.Reader) {
+func (f *FakeServer) setContent(pattern, contentType string, content []byte) {
 	f.mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
@@ -101,6 +129,7 @@ func (f *FakeServer) setContent(pattern, contentType string, reader io.Reader) {
 		}
 		w.Header().Add("Content-Type", contentType)
 
+		reader := bytes.NewReader(content)
 		if _, err := io.Copy(w, reader); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}

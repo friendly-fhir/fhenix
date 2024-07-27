@@ -16,7 +16,9 @@ func TestFakeClient_Fetch(t *testing.T) {
 	client := registrytest.NewFakeClient()
 	testErr := errors.New("test error")
 	content := []byte("good package")
-	client.SetOK("good.package", "1.0.0", content)
+	client.SetTarball("good.tar", "1.0.0", content)
+	client.SetGzipTarball("good.tar.gzip", "1.0.0", registrytest.GzipTarballBytes(TestPackage))
+	client.SetTarballFS("good.fs.tar", "1.0.0", TestPackage)
 	client.SetError("bad.package", "1.0.0", testErr)
 	client.Set("bad.not-found", "1.0.0", http.StatusNotFound, nil)
 
@@ -28,10 +30,20 @@ func TestFakeClient_Fetch(t *testing.T) {
 		wantErr   error
 	}{
 		{
-			name:      "good package",
-			pkg:       "good.package",
+			name:      "good tar",
+			pkg:       "good.tar",
 			version:   "1.0.0",
 			wantBytes: int64(len(content)),
+		}, {
+			name:      "good gzip tar",
+			pkg:       "good.tar.gzip",
+			version:   "1.0.0",
+			wantBytes: int64(len(registrytest.GzipTarballBytes(TestPackage))),
+		}, {
+			name:      "good tar fs",
+			pkg:       "good.fs.tar",
+			version:   "1.0.0",
+			wantBytes: int64(len(registrytest.TarballBytes(TestPackage))),
 		}, {
 			name:    "bad package",
 			pkg:     "bad.package",

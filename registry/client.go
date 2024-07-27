@@ -1,8 +1,10 @@
 package registry
 
 import (
+	"compress/gzip"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 
@@ -86,6 +88,30 @@ var (
 	ErrBadContent     = fmt.Errorf("bad content")
 )
 
+type multiCloser struct {
+	reader  io.Reader
+	closers []io.Closer
+}
+
+func (m *multiCloser) Read(p []byte) (n int, err error) {
+	return m.reader.Read(p)
+}
+
+func (m *multiCloser) Close() error {
+	var errs []error
+	for _, r := range m.closers {
+		errs = append(errs, r.Close())
+	}
+	return errors.Join(errs...)
+}
+
+func multiReadCloser(reader io.ReadCloser, closers ...io.Closer) io.ReadCloser {
+	return &multiCloser{
+		reader:  reader,
+		closers: append(closers, reader),
+	}
+}
+
 // Fetch will fetch the given package with the specified version from the
 // connected registry.
 func (c *Client) Fetch(ctx context.Context, name, version string) (content io.ReadCloser, bytes int64, err error) {
@@ -103,7 +129,14 @@ func (c *Client) Fetch(ctx context.Context, name, version string) (content io.Re
 	}
 	switch content := resp.Header.Get("Content-Type"); content {
 	case "application/gzip", "application/tar+gzip":
-		break // no work to be done here
+		reader, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			resp.Body.Close()
+			return nil, 0, err
+		}
+		return multiReadCloser(reader, resp.Body), resp.ContentLength, nil
+	case "application/tar":
+		return resp.Body, resp.ContentLength, nil
 	case "application/json":
 		var pkg struct {
 			Dist struct {

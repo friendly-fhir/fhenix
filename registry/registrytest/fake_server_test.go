@@ -14,15 +14,23 @@ import (
 )
 
 func TestFakeServer(t *testing.T) {
+	t.Parallel()
+
 	sut := registrytest.NewFakeServer()
 	defer sut.Close()
 	testErr := errors.New("test error")
 	content := []byte("good package")
-	sut.SetTarball("good.package", "1.0.0", bytes.NewReader(content))
-	sut.SetIndirectTarball("good.indirect.package", "1.0.0", bytes.NewReader(content))
+	sut.SetTarball("good.tar", "1.0.0", content)
+	sut.SetTarballFS("good.fs.tar", "1.0.0", TestPackage)
+	sut.SetGzipTarball("good.tar.gzip", "1.0.0", content)
+
+	sut.SetIndirectTarball("good.indirect.tar", "1.0.0", content)
+	sut.SetIndirectTarballFS("good.fs.indirect.tar", "1.0.0", TestPackage)
+	sut.SetIndirectGzipTarball("good.indirect.tar.gzip", "1.0.0", content)
+
 	sut.SetError("bad.package", "1.0.0", testErr)
 	sut.SetStatusCode("bad.not-found", "1.0.0", 404)
-	sut.SetContent("bad.content-type", "1.0.0", "application/slam-poetry", bytes.NewReader(nil))
+	sut.SetContent("bad.content-type", "1.0.0", "application/slam-poetry", nil)
 
 	testCases := []struct {
 		name            string
@@ -34,16 +42,36 @@ func TestFakeServer(t *testing.T) {
 		wantErr         error
 	}{
 		{
-			name:            "good package",
+			name:            "good tar package",
 			method:          http.MethodGet,
-			path:            "/good.package/1.0.0",
-			wantContentType: "application/gzip",
+			path:            "/good.tar/1.0.0",
+			wantContentType: "application/tar",
 			wantStatusCode:  http.StatusOK,
 			wantContent:     content,
 		}, {
-			name:            "good indirect package",
+			name:            "good tar gzip package",
 			method:          http.MethodGet,
-			path:            "/good.indirect.package/1.0.0",
+			path:            "/good.tar.gzip/1.0.0",
+			wantContentType: "application/tar+gzip",
+			wantStatusCode:  http.StatusOK,
+			wantContent:     content,
+		}, {
+			name:            "good tar fs package",
+			method:          http.MethodGet,
+			path:            "/good.fs.tar/1.0.0",
+			wantContentType: "application/tar",
+			wantStatusCode:  http.StatusOK,
+			wantContent:     registrytest.TarballBytes(TestPackage),
+		}, {
+			name:            "good indirect tar package",
+			method:          http.MethodGet,
+			path:            "/good.indirect.tar/1.0.0",
+			wantContentType: "application/json",
+			wantStatusCode:  http.StatusOK,
+		}, {
+			name:            "good indirect tar gzip package",
+			method:          http.MethodGet,
+			path:            "/good.indirect.tar.gzip/1.0.0",
 			wantContentType: "application/json",
 			wantStatusCode:  http.StatusOK,
 		}, {
@@ -59,12 +87,12 @@ func TestFakeServer(t *testing.T) {
 		}, {
 			name:           "bad method",
 			method:         http.MethodPost,
-			path:           "/good.package/1.0.0",
+			path:           "/good.tar/1.0.0",
 			wantStatusCode: http.StatusMethodNotAllowed,
 		}, {
 			name:           "bad method indirect",
 			method:         http.MethodPost,
-			path:           "/good.indirect.package/1.0.0",
+			path:           "/good.indirect.tar/1.0.0",
 			wantStatusCode: http.StatusMethodNotAllowed,
 		},
 	}

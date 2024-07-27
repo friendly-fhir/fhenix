@@ -1,7 +1,6 @@
 package registry_test
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"testing"
@@ -28,18 +27,18 @@ var (
 func TestClient_Fetch(t *testing.T) {
 	server := registrytest.NewFakeServer()
 
-	server.SetIndirectTarball("good.indirect", "4.0.1", bytes.NewReader(goodArchive))
-	server.SetIndirectTarball("malformed.indirect", "4.0.1", bytes.NewReader(malformedArchive))
-	server.SetIndirectTarball("invalid.indirect", "4.0.1", bytes.NewReader(invalidArchive))
+	server.SetIndirectGzipTarball("good.indirect", "4.0.1", goodArchive)
+	server.SetIndirectGzipTarball("malformed.indirect", "4.0.1", malformedArchive)
+	server.SetIndirectGzipTarball("invalid.indirect", "4.0.1", invalidArchive)
 
-	server.SetTarball("good.direct", "5.0.1", bytes.NewReader(goodArchive))
-	server.SetTarball("malformed.direct", "5.0.1", bytes.NewReader(malformedArchive))
-	server.SetTarball("invalid.direct", "5.0.1", bytes.NewReader(invalidArchive))
+	server.SetTarball("good.direct", "5.0.1", goodArchive)
+	server.SetTarball("malformed.direct", "5.0.1", malformedArchive)
+	server.SetTarball("invalid.direct", "5.0.1", invalidArchive)
 
 	server.SetStatusCode("bad.not-found", "4.0.4", 404)
-	server.SetContent("bad.content-type", "4.0.4", "application/slam-poetry", bytes.NewReader(nil))
-	server.SetContent("bad.json-content", "4.0.4", "application/json", bytes.NewReader([]byte(`{"pkg":`)))
-	server.SetContent("bad.no-tarball", "4.0.4", "application/json", bytes.NewReader([]byte(`{}`)))
+	server.SetContent("bad.content-type", "4.0.4", "application/slam-poetry", nil)
+	server.SetContent("bad.json-content", "4.0.4", "application/json", []byte(`{"pkg":`))
+	server.SetContent("bad.no-tarball", "4.0.4", "application/json", []byte(`{}`))
 	server.SetError("bad.error", "4.0.4", fmt.Errorf("server error"))
 
 	ctx := context.Background()

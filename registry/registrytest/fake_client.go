@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"sync"
 
@@ -47,14 +48,32 @@ func NewFakeClient() *FakeClient {
 	return result
 }
 
-// SetOK sets the gzip response for the given package and version.
-func (fc *FakeClient) SetOK(name, version string, content []byte) {
+// SetGzipTarball sets the gzip response for the given package and version.
+func (fc *FakeClient) SetGzipTarball(name, version string, content []byte) {
 	entry := &contentEntry{
 		responseCode: http.StatusOK,
 		content:      content,
+		contentType:  "application/tar+gzip",
 		length:       int64(len(content)),
 	}
 	fc.client.entries.Store(fmt.Sprintf("/%s/%s", name, version), entry)
+}
+
+// SetTarball sets the tar response for the given package and version.
+func (fc *FakeClient) SetTarball(name, version string, content []byte) {
+	entry := &contentEntry{
+		responseCode: http.StatusOK,
+		content:      content,
+		contentType:  "application/tar",
+		length:       int64(len(content)),
+	}
+	fc.client.entries.Store(fmt.Sprintf("/%s/%s", name, version), entry)
+}
+
+// SetTarballFS sets the tarball respons for the given package and version, done as
+// a filesystem
+func (fc *FakeClient) SetTarballFS(name, version string, fs fs.FS) {
+	fc.SetTarball(name, version, TarballBytes(fs))
 }
 
 // SetError sets the error response for the given package and version.
@@ -86,6 +105,7 @@ type authClient struct {
 type contentEntry struct {
 	responseCode int
 	content      []byte
+	contentType  string
 	length       int64
 	err          error
 }
@@ -105,7 +125,7 @@ func (ac *authClient) Do(req *http.Request) (*http.Response, error) {
 		return nil, content.err
 	}
 	headers := http.Header{}
-	headers.Add("Content-Type", "application/gzip")
+	headers.Add("Content-Type", content.contentType)
 	return &http.Response{
 		StatusCode:    content.responseCode,
 		Status:        http.StatusText(content.responseCode),

@@ -37,9 +37,9 @@ func TestLoader_Load(t *testing.T) {
 	)
 	var listener TestListener
 	client := registrytest.NewFakeClient()
-	client.SetOK("dependent.package.one", version, dependentArchiveOne)
-	client.SetOK("dependent.package.two", version, dependentArchiveTwo)
-	client.SetOK("leaf.package", version, leafArchive)
+	client.SetGzipTarball("dependent.package.one", version, dependentArchiveOne)
+	client.SetGzipTarball("dependent.package.two", version, dependentArchiveTwo)
+	client.SetGzipTarball("leaf.package", version, leafArchive)
 
 	cache := registry.NewCache(t.TempDir())
 	cache.AddClient(registryName, client.Client)
