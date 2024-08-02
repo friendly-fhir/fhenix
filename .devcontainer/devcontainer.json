@@ -1,0 +1,56 @@
+{
+  "name": "Fhenix Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/go:1-1.22",
+  "postCreateCommand": "go mod download",
+  "customizations": {
+    "codespaces": {
+      "openFiles": [
+        "README.md"
+      ]
+    },
+    "vscode": {
+      "extensions": [
+        "bierner.markdown-mermaid",
+        "bierner.markdown-preview-github-styles",
+        "bpruitt-goddard.mermaid-markdown-syntax-highlighting",
+        "davidanson.vscode-markdownlint",
+        "eamodio.gitlens",
+        "github.copilot-chat",
+        "github.copilot",
+        "github.vscode-github-actions",
+        "golang.go",
+        "me-dutour-mathieu.vscode-github-actions",
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-yaml",
+        "yzhang.markdown-all-in-one"
+      ],
+      "settings": {
+        "[git-commit]": {
+          "editor.rulers": [
+            50,
+            72
+          ]
+        },
+        "[go]": {
+          "editor.insertSpaces": false
+        },
+        "go.lintTool": "golangci-lint",
+        "editor.tabSize": 2,
+        "editor.formatOnSave": true,
+        "markdown.extension.list.indentationSize": "adaptive",
+        "markdown.extension.italic.indicator": "_",
+        "markdown.extension.bold.indicator": "**",
+        "markdown.extension.orderedList.marker": "ordered"
+      }
+    }
+  },
+  "remoteEnv": {
+    "GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}"
+  },
+  "features": {
+    "ghcr.io/marcozac/devcontainer-features/goreleaser:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/go:1": {},
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  }
+}
