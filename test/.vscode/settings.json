@@ -1,0 +1,4 @@
+{
+  "go.testOnSave": false,
+  "go.coverOnSave": false,
+}
