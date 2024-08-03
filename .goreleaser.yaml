@@ -31,6 +31,7 @@ checksum:
 
 archives:
   - format: tar.gz
+    wrap_in_directory: true
     name_template: >-
       {{ tolower .ProjectName }}-
       {{- .Version }}-

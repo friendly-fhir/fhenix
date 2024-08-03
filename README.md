@@ -1,6 +1,6 @@
 # ![Fhenix](./docs/phenix-logo.png)
 
-![Continuous Integration](https://img.shields.io/github/actions/workflow/status/friendly-fhir/fhenix/.github%2Fworkflows%2Fpostsubmit.yaml?logo=github)
+![Continuous Integration](https://img.shields.io/github/actions/workflow/status/friendly-fhir/fhenix/.github%2Fworkflows%2Fcontinuous-integration.yaml?logo=github)
 [![GitHub Release](https://img.shields.io/github/v/release/friendly-fhir/fhenix?include_prereleases)][github-releases]
 [![Gitter Channel](https://img.shields.io/badge/matrix-%23friendly--fhir-darkcyan?logo=gitter)][gitter-channel]
 [![readthedocs](https://img.shields.io/badge/docs-readthedocs-blue?logo=readthedocs&logoColor=white)][docs]
