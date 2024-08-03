@@ -50,10 +50,11 @@ func TestIntegration(t *testing.T) {
 		Strict:   true,
 	}
 
+	binary, init := InitializeTestSuite(t, verbose)
 	status := godog.TestSuite{
 		Name:                 "Fhenix",
-		TestSuiteInitializer: InitializeTestSuite(t, verbose),
-		ScenarioInitializer:  InitializeScenario(t, verbose),
+		TestSuiteInitializer: init,
+		ScenarioInitializer:  InitializeScenario(t, verbose, binary),
 		Options:              &opts,
 	}.Run()
 
@@ -89,33 +90,36 @@ func run(t *testing.T, verbose bool, cmd string, args ...string) (string, error)
 	return combined.String(), command.Run()
 }
 
-func InitializeTestSuite(t *testing.T, verbose bool) func(ctx *godog.TestSuiteContext) {
+func InitializeTestSuite(t *testing.T, verbose bool) (binary string, init func(ctx *godog.TestSuiteContext)) {
 	t.Helper()
 	dir := t.TempDir()
 	binDir := filepath.Join(dir, "bin")
-	return func(ctx *godog.TestSuiteContext) {
+	binary = filepath.Join(binDir, "fhenix")
+	if runtime.GOOS == "windows" {
+		binary += ".exe"
+	}
+	init = func(ctx *godog.TestSuiteContext) {
 		ctx.BeforeSuite(func() {
 			_ = os.MkdirAll(binDir, 0755)
-			t.Setenv("PATH",
-				strings.Join([]string{os.Getenv("PATH"), binDir},
-					string(filepath.ListSeparator)),
-			)
 			if verbose {
-				t.Logf("PATH+=%s", binDir)
-				t.Logf("installing fhenix...")
+				t.Logf("Building fhenix...")
 			}
-			run(t, verbose, "go", "build", "-o", filepath.Join(binDir, "fhenix"), repoRootDir(t))
+			_, err := run(t, verbose, "go", "build", "-o", binary, repoRootDir(t))
+			if err != nil {
+				t.Fatalf("failed to build fhenix: %v", err)
+			}
 		})
 		ctx.AfterSuite(func() {
 			if verbose {
-				t.Logf("removing %s...", binDir)
+				t.Logf("removing %s...", binary)
 			}
-			_ = os.RemoveAll(binDir)
+			_ = os.RemoveAll(binary)
 		})
 	}
+	return
 }
 
-func InitializeScenario(t *testing.T, verbose bool) func(ctx *godog.ScenarioContext) {
+func InitializeScenario(t *testing.T, verbose bool, binary string) func(ctx *godog.ScenarioContext) {
 	dir := t.TempDir()
 	return func(ctx *godog.ScenarioContext) {
 		ctx.Before(func(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
@@ -144,7 +148,7 @@ func InitializeScenario(t *testing.T, verbose bool) func(ctx *godog.ScenarioCont
 		ctx.Given(`^a timeout of (\d+[a-zA-Z]+)$`, tc.SetTimeout)
 		ctx.Given(`^the cache is empty$`, tc.PurgeCache)
 		ctx.Given(`^the cache contains packages:$`, tc.PrimeCache)
-		ctx.Given(`^the command '(.+)'$`, tc.SetCommand)
+		ctx.Given(`^the command '(.+)'$`, tc.SetCommand(binary))
 		ctx.Given(`^the registry is '(.+)'$`, tc.SetRegistry)
 
 		ctx.When(`^the command is executed$`, tc.ExecuteCommand)
@@ -201,9 +205,15 @@ func (tc *TestCase) PrimeCache(table *godog.Table) error {
 	return godog.ErrPending
 }
 
-func (tc *TestCase) SetCommand(command string) error {
-	tc.Command = strings.Split(command, " ")
-	return nil
+func (tc *TestCase) SetCommand(binary string) func(string) error {
+	return func(command string) error {
+		parts := strings.Fields(command)
+		if parts[0] == "fhenix" {
+			parts[0] = binary
+		}
+		tc.Command = strings.Split(command, " ")
+		return nil
+	}
 }
 
 func (tc *TestCase) SetRegistry(registry string) error {
