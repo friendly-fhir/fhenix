@@ -23,11 +23,11 @@ builds:
 archives:
   - format: tar.gz
     name_template: >-
-      {{ .ProjectName }}_
-      {{- title .Os }}_
+      {{ tolower .ProjectName }}-
+      {{- tolower .Os }}-
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
-      {{- else }}{{ .Arch }}{{ end }}
+      {{- else }}{{ tolower .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
     # use zip for windows archives
     format_overrides:
@@ -40,11 +40,11 @@ archives:
 sboms:
   - documents:
       - |
-        {{- .ProjectName }}_
-        {{- title .Os }}_
+        {{- tolower .ProjectName }}-
+        {{- tolower .Os }}-
         {{- if eq .Arch "amd64" }}x86_64
         {{- else if eq .Arch "386" }}i386
-        {{- else }}{{ .Arch }}{{ end }}
+        {{- else }}{{ tolower .Arch }}{{ end }}
         {{- if .Arm }}v{{ .Arm }}{{- end -}}{{- ".bom.json" -}}
     artifacts: binary
     cmd: cyclonedx-gomod
