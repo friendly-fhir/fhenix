@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-name: Postsubmit
+name: Continuous Integration
 
 on:
   workflow_call:
@@ -15,7 +15,7 @@ permissions:
   contents: read
   security-events: write
   id-token: write
-  actions: read
+  actions: write
 
 jobs:
   build-and-test:
@@ -42,32 +42,21 @@ jobs:
       contents: read
       id-token: write
 
-  snapshot-release:
-    name: Snapshot Release
-    uses: friendly-fhir/.github/.github/workflows/go-release.yaml@master
-    with:
-      snapshot: true
-    permissions:
-      contents: write
-      attestations: write
-      id-token: write
-
   email-on-failure:
     name: Email on Failure
     runs-on: ubuntu-latest
     needs:
       - build-and-test
       - integration-test
-      - snapshot-release
     if: always() && failure()
     continue-on-error: true
     steps:
       - name: Send email
         uses: friendly-fhir/.github/actions/community/send-email@master
         with:
-          recipient: subscribers@ci.friendly-fhir.org
+          recipient: ${{ secrets.CI_FAILURE_EMAIL_RECIPIENT }}
           api-key: ${{ secrets.MAILGUN_API_KEY }}
-          subject: ${{ github.repository}} Post-submit failed
+          subject: ${{ github.repository}} Continuous Integration failed
           body: |
-            The post-submit workflow for ${{ github.repository }} failed.
+            The Continuous Integration for ${{ github.repository }} failed.
             Please see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} for details.

@@ -21,7 +21,7 @@ permissions:
 jobs:
   continuous-integration:
     name: Continuous Integration
-    uses: ./.github/workflows/presubmit.yaml
+    uses: ./.github/workflows/continuous-integration.yaml
     permissions:
       contents: read
       security-events: write
