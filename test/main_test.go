@@ -211,7 +211,7 @@ func (tc *TestCase) SetCommand(binary string) func(string) error {
 		if parts[0] == "fhenix" {
 			parts[0] = binary
 		}
-		tc.Command = strings.Split(command, " ")
+		tc.Command = parts
 		return nil
 	}
 }
