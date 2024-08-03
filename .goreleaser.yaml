@@ -15,10 +15,19 @@ before:
 builds:
   - env:
       - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags: -s -w -X main.version={{ .Version }} -X main.commit={{ .ShortCommit }} -X main.date={{ .Date }}
     goos:
       - linux
       - windows
       - darwin
+
+snapshot:
+  name_template: "{{- .ShortCommit }}"
+
+checksum:
+  name_template: "{{- tolower .ProjectName }}-{{ .Version }}-checksums.txt"
 
 archives:
   - format: tar.gz
@@ -37,9 +46,8 @@ archives:
     files:
       - LICENSE-MIT
       - LICENSE-APACHE
-checksum:
-  name_template: |
-    {{- tolower .ProjectName }}-{{ .Version }}-checksums.txt
+      - README.md
+
 sboms:
   - documents:
       - |
@@ -65,10 +73,3 @@ sboms:
     env:
       - GOARCH={{ .Arch }}
       - GOOS={{ .Os }}
-
-changelog:
-  sort: asc
-  filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
