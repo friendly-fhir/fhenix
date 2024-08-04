@@ -9,12 +9,14 @@ import (
 	"runtime/debug"
 	"strings"
 	"text/template"
+	"time"
 	"unicode"
 
 	"atomicgo.dev/cursor"
 	"github.com/friendly-fhir/fhenix/internal/ansi"
 	"github.com/friendly-fhir/fhenix/internal/dedent"
 	"github.com/spf13/cobra"
+	"github.com/spf13/cobra/doc"
 )
 
 var (
@@ -49,6 +51,8 @@ type Application struct {
 	command *cobra.Command
 
 	panicTemplate *template.Template
+
+	buildDate time.Time
 }
 
 type AppInfo struct {
@@ -80,6 +84,13 @@ type AppInfo struct {
 	// UserData is an optional (unspecified) piece of data that can be provided
 	// to the application. Default is nil.
 	UserData any
+
+	// Version is the version of the application. Default is "snapshot" if
+	// not specified
+	Version string
+
+	// Date is the date the application was built at.
+	Date time.Time
 }
 
 // NewApplication creates a new application from the given root command.
@@ -113,12 +124,21 @@ func NewApplication(root Command, appInfo *AppInfo) *Application {
 		"AppName": get(appInfo.Name),
 		"AppInfo": get(appInfo),
 	})
+	cmd := toCobraCommand(cfg, root)
+	cmd.Version = appInfo.Version
+	if cmd.Version == "" {
+		cmd.Version = "snapshot"
+	}
+	if appInfo.Date.IsZero() {
+		appInfo.Date = time.Now()
+	}
 
 	return &Application{
 		name:          appInfo.Name,
-		command:       toCobraCommand(cfg, root),
+		command:       cmd,
 		appInfo:       appInfo,
 		panicTemplate: panicTemplate,
+		buildDate:     appInfo.Date,
 	}
 }
 
@@ -230,6 +250,15 @@ func (a *Application) SetPanicTemplate(tmpl string) {
 		panic(err)
 	}
 	a.panicTemplate = t
+}
+
+// GenManTree generates man pages for the application into the given directory.
+func (a *Application) GenManTree(directory string) error {
+	header := &doc.GenManHeader{
+		Title: a.appInfo.Name,
+		Date:  &a.buildDate,
+	}
+	return doc.GenManTree(a.command, header, directory)
 }
 
 func (a *Application) visitAllCommands(fn func(cmd *cobra.Command)) {
