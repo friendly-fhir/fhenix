@@ -33,7 +33,7 @@ archives:
   - format: tar.gz
     wrap_in_directory: true
     name_template: >-
-      {{ tolower .ProjectName }}-
+      {{- tolower .ProjectName }}-
       {{- .Version }}-
       {{- tolower .Os }}-
       {{- if eq .Arch "amd64" }}x86_64
@@ -51,7 +51,7 @@ archives:
 
 sboms:
   - documents:
-      - |
+      - >-
         {{- tolower .ProjectName }}-
         {{- .Version }}-
         {{- tolower .Os }}-
@@ -74,3 +74,24 @@ sboms:
     env:
       - GOARCH={{ .Arch }}
       - GOOS={{ .Os }}
+
+brews:
+  - repository:
+      owner: friendly-fhir
+      name: homebrew-tap
+    directory: Formula
+    homepage: https://friendly-fhir.org/fhenix
+    description: >
+      Fhenix is a FHIR code-generation tool for producing language bindings from
+      structure definitions
+    install: |
+      bin.install "fhenix"
+      output = Utils.popen_read("#{bin}/fhenix completion bash")
+      (bash_completion/"fhenix").write output
+      output = Utils.popen_read("#{bin}/fhenix completion zsh")
+      (zsh_completion/"_fhenix").write output
+      output = Utils.popen_read("#{bin}/fhenixlint completion fish")
+      (fish_completion/"fhenix.fish").write output
+      prefix.install_metafiles
+    test: |
+      system "#{bin}/fhenix --version"
