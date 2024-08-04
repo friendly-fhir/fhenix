@@ -10,16 +10,16 @@ Fhenix is a flexible and lightweight tool for generating content from a modeling
 of a [FHIR] IG's definitional entries.
 
 This leverages packages as defined in the [Simplifier registry], parses their
-relevant entities ([`StructureDefinition`], [`CodeSystem`], and
-[`ValueSet`]), constructs a model of these entities, and then feeds it into Go
+relevant entities ([StructureDefinition], [CodeSystem], and
+[ValueSet]), constructs a model of these entities, and then feeds it into Go
 templates to generate content.
 
 Check out our [examples](./examples)!
 
 [FHIR]: https://www.hl7.org/fhir/
-[`ValueSet`]: https://www.hl7.org/fhir/valueset.html
-[`CodeSystem`]: https://www.hl7.org/fhir/codesystem.html
-[`StructureDefinition`]: https://www.hl7.org/fhir/structuredefinition.html
+[ValueSet]: https://www.hl7.org/fhir/valueset.html
+[CodeSystem]: https://www.hl7.org/fhir/codesystem.html
+[StructureDefinition]: https://www.hl7.org/fhir/structuredefinition.html
 
 [gitter-channel]: https://matrix.to/#/#friendly-fhir:gitter.im
 [docs]: https://friendly-fhir.github.io/fhenix/
@@ -32,29 +32,33 @@ Check out our [examples](./examples)!
 * [📚 Getting Starts][docs]
 * [🚂 Examples](./examples)
 * [🚀 Use](#use)
-* [📦 Installing](#installing)
+* [📦 Getting Started][getting_started]
+
+[getting_started]: https://friendly-fhir.org/fhenix/user-manual/getting-started/
 
 ## Use
 
-This tool is intended for producing content off of modeled FHIR definitional
-resources. This can be used for:
+Fhenix generates content from [FHIR Conformance Modules] defined in registries
+like [Simplifier].
 
-* Code generation, to create custom bindings for organizational profiles
-* Documentation generation, to create custom documentation for IGs
+With Fhenix, you can do:
+
+* Code generation, to create custom bindings and logic for handling your
+  organization's profiles
+* Documentation generation, to create custom documentation for your IGs
 * Data generation, to create test data based on profiles
+* Schema generation, to create SQL tables of FHIR resource data
 
 Some practical projects leveraging this within [Friendly FHIR]:
 
-* [`go-fhir`](https://github.com/friendly-fhir/go-fhir):
+* [go-fhir](https://github.com/friendly-fhir/go-fhir):
   A Go library for working with FHIR resources
-* [`fhir-jsonschema`](https://github.com/friendly-fhir/fhir-jsonschema):
-  Hosting of FHIR [JSON Schema] definitions
+* [rust-fhir](https://github.com/friendly-fhir/rust-fhir):
+  A Rust library for working with FHIR resources
+* [sqlite-fhir-server](https://github.com/friendly-fhir/sqlite-fhirstore)
+  A FHIR server that uses [SQLite] as a backend for storage and emitting
+  REST APIs. Generates SQLite tables from `StructureDefinition` resources.
 
+[SQLite]: https://sqlite.org/index.html
 [Friendly FHIR]: https://github.com/friendly-fhir
-[JSON Schema]: https://json-schema.org
-
-## Installing
-
-```bash
-go install github.com/friendly-fhir/fhenix@latest
-```
+[FHIR Conformance Modules]: https://www.hl7.org/fhir/conformance-module.html
