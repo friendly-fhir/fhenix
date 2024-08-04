@@ -249,6 +249,7 @@ uname_arch_check() {
   case "$arch" in
     386) return 0 ;;
     amd64) return 0 ;;
+    x86_64) return 0 ;;
     arm64) return 0 ;;
     armv5) return 0 ;;
     armv6) return 0 ;;
