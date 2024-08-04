@@ -26,7 +26,6 @@ jobs:
       contents: read
       security-events: write
       id-token: write
-      actions: read
 
   release-binaries:
     name: Release Binaries
