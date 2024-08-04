@@ -81,10 +81,8 @@ brews:
       name: homebrew-tap
       branch: feature/{{ .ProjectName }}-{{ .Tag }}-formula
       token: "{{ .Env.GITHUB_TOKEN }}"
-      pull_request:
-        enabled: true
     commit_author:
-      name: FHIR Bellows Bot
+      name: fhir-bellows[bot]
       email: fhir-bellows@friendly-fhir.org
     commit_msg_template: >-
       Add brew formula for fhenix {{ .Tag }}
