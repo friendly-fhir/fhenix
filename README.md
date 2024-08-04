@@ -1,10 +1,17 @@
-# ![Fhenix](./docs/phenix-logo.png)
+# ![Fhenix](./docs/fhenix-logo.png)
+
+<!-- markdownlint-disable MD033 -->
+<div style="margin: auto; text-align: center;">
 
 ![Continuous Integration](https://img.shields.io/github/actions/workflow/status/friendly-fhir/fhenix/.github%2Fworkflows%2Fcontinuous-integration.yaml?logo=github)
-[![GitHub Release](https://img.shields.io/github/v/release/friendly-fhir/fhenix?include_prereleases)][github-releases]
-[![Gitter Channel](https://img.shields.io/badge/matrix-%23friendly--fhir-darkcyan?logo=gitter)][gitter-channel]
+[![Go Report Card](https://goreportcard.com/badge/github.com/friendly-fhir/fhenix)][go-report]
 [![readthedocs](https://img.shields.io/badge/docs-readthedocs-blue?logo=readthedocs&logoColor=white)][docs]
 [![Godocs](https://img.shields.io/badge/docs-reference-blue?logo=go&logoColor=white)][go-docs]
+
+[![GitHub Release](https://img.shields.io/github/v/release/friendly-fhir/fhenix?include_prereleases)][github-releases]
+[![Gitter Channel](https://img.shields.io/badge/matrix-%23friendly--fhir-darkcyan?logo=gitter)][gitter-channel]
+
+</div>
 
 Fhenix is a flexible and lightweight tool for generating content from a modeling
 of a [FHIR] IG's definitional entries.
@@ -24,6 +31,7 @@ Check out our [examples](./examples)!
 [gitter-channel]: https://matrix.to/#/#friendly-fhir:gitter.im
 [docs]: https://friendly-fhir.github.io/fhenix/
 [go-docs]: https://pkg.go.dev/github.com/friendly-fhir/fhenix
+[go-report]: https://goreportcard.com/report/github.com/friendly-fhir/fhenix
 [github-releases]: https://github.com/friendly-fhir/fhenix/releases
 [Simplifier registry]: https://simplifier.net
 
