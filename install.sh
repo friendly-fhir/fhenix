@@ -206,10 +206,10 @@ log_crit() {
 uname_os() {
   os=$(uname -s | tr '[:upper:]' '[:lower:]')
   case "$os" in
-    msys*) os="Windows" ;;
-    mingw*) os="Windows" ;;
-    cygwin*) os="Windows" ;;
-    win*) os="Windows" ;;
+    msys*) os="windows" ;;
+    mingw*) os="windows" ;;
+    cygwin*) os="windows" ;;
+    win*) os="windows" ;;
     sunos) [ "$(uname -o)" = "illumos" ] && os=illumos ;;
   esac
   echo "$os"
