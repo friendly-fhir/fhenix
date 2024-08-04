@@ -79,8 +79,13 @@ brews:
   - repository:
       owner: friendly-fhir
       name: homebrew-tap
+      branch: feature/{{ .ProjectName }}-{{ .Tag }}-formula
       pull_request:
         enabled: true
+        base:
+          owner: friendly-fhir
+          name: homebrew-tap
+          branch: master
     commit_author:
       name: FHIR Bellows Bot
       email: fhir-bellows@friendly-fhir.org
