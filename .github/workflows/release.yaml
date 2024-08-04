@@ -19,17 +19,20 @@ permissions:
   attestations: write
 
 jobs:
-  continuous-integration:
-    name: Continuous Integration
-    uses: ./.github/workflows/continuous-integration.yaml
+  build-and-test:
+    name: Build and Test
+    uses: friendly-fhir/.github/.github/workflows/go-build-and-test.yaml@master
+    with:
+      packages: ./...
+      go-version-file: go.mod
+      short-test: false
     permissions:
       contents: read
-      security-events: write
       id-token: write
 
   release-binaries:
     name: Release Binaries
-    needs: continuous-integration
+    needs: build-and-test
     uses: friendly-fhir/.github/.github/workflows/go-release.yaml@master
     with:
       snapshot: false
@@ -40,7 +43,7 @@ jobs:
 
   release-container:
     name: Release Container Image
-    needs: continuous-integration
+    needs: build-and-test
     uses: friendly-fhir/.github/.github/workflows/docker-build-and-deploy-ghcr.yaml@master
     permissions:
       contents: read
