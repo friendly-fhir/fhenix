@@ -66,6 +66,7 @@ execute() {
 get_binaries() {
   case "$PLATFORM" in
     darwin/amd64) BINARIES="${PROJECT_NAME}" ;;
+    darwin/x86_64) BINARIES="${PROJECT_NAME}" ;;
     darwin/arm64) BINARIES="${PROJECT_NAME}" ;;
     darwin/armv6) BINARIES="${PROJECT_NAME}" ;;
     darwin/armv7) BINARIES="${PROJECT_NAME}" ;;
@@ -75,6 +76,7 @@ get_binaries() {
     darwin/s390x) BINARIES="${PROJECT_NAME}" ;;
     freebsd/386) BINARIES="${PROJECT_NAME}" ;;
     freebsd/amd64) BINARIES="${PROJECT_NAME}" ;;
+    freebsd/x86_64) BINARIES="${PROJECT_NAME}" ;;
     freebsd/armv6) BINARIES="${PROJECT_NAME}" ;;
     freebsd/armv7) BINARIES="${PROJECT_NAME}" ;;
     freebsd/mips64) BINARIES="${PROJECT_NAME}" ;;
@@ -82,8 +84,10 @@ get_binaries() {
     freebsd/ppc64le) BINARIES="${PROJECT_NAME}" ;;
     freebsd/s390x) BINARIES="${PROJECT_NAME}" ;;
     illumos/amd64) BINARIES="${PROJECT_NAME}" ;;
+    illumos/x86_64) BINARIES="${PROJECT_NAME}" ;;
     linux/386) BINARIES="${PROJECT_NAME}" ;;
     linux/amd64) BINARIES="${PROJECT_NAME}" ;;
+    linux/x86_64) BINARIES="${PROJECT_NAME}" ;;
     linux/arm64) BINARIES="${PROJECT_NAME}" ;;
     linux/armv6) BINARIES="${PROJECT_NAME}" ;;
     linux/armv7) BINARIES="${PROJECT_NAME}" ;;
@@ -95,10 +99,12 @@ get_binaries() {
     linux/loong64) BINARIES="${PROJECT_NAME}" ;;
     netbsd/386) BINARIES="${PROJECT_NAME}" ;;
     netbsd/amd64) BINARIES="${PROJECT_NAME}" ;;
+    netbsd/x86_64) BINARIES="${PROJECT_NAME}" ;;
     netbsd/armv6) BINARIES="${PROJECT_NAME}" ;;
     netbsd/armv7) BINARIES="${PROJECT_NAME}" ;;
     windows/386) BINARIES="${PROJECT_NAME}" ;;
     windows/amd64) BINARIES="${PROJECT_NAME}" ;;
+    windows/x86_64) BINARIES="${PROJECT_NAME}" ;;
     windows/arm64) BINARIES="${PROJECT_NAME}" ;;
     windows/armv6) BINARIES="${PROJECT_NAME}" ;;
     windows/armv7) BINARIES="${PROJECT_NAME}" ;;
