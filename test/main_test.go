@@ -16,7 +16,7 @@ import (
 
 	"github.com/cucumber/godog"
 	"github.com/cucumber/godog/colors"
-	"github.com/friendly-fhir/fhenix/registry"
+	"github.com/friendly-fhir/fhenix/pkg/registry"
 )
 
 var opts = godog.Options{

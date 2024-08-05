@@ -9,12 +9,12 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/friendly-fhir/fhenix/data"
-	"github.com/friendly-fhir/fhenix/driver"
 	"github.com/friendly-fhir/fhenix/internal/ansi"
 	"github.com/friendly-fhir/fhenix/internal/snek/spinner"
 	"github.com/friendly-fhir/fhenix/internal/snek/terminal"
-	"github.com/friendly-fhir/fhenix/registry"
+	"github.com/friendly-fhir/fhenix/pkg/data"
+	"github.com/friendly-fhir/fhenix/pkg/driver"
+	"github.com/friendly-fhir/fhenix/pkg/registry"
 )
 
 type TTYListener struct {

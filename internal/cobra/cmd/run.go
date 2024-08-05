@@ -8,12 +8,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/friendly-fhir/fhenix/config"
-	"github.com/friendly-fhir/fhenix/driver"
 	"github.com/friendly-fhir/fhenix/internal/set"
 	"github.com/friendly-fhir/fhenix/internal/snek"
 	"github.com/friendly-fhir/fhenix/internal/snek/terminal"
-	"github.com/friendly-fhir/fhenix/registry"
+	"github.com/friendly-fhir/fhenix/pkg/config"
+	"github.com/friendly-fhir/fhenix/pkg/driver"
+	"github.com/friendly-fhir/fhenix/pkg/registry"
 )
 
 type RunCommand struct {

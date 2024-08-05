@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/friendly-fhir/fhenix/driver"
+	"github.com/friendly-fhir/fhenix/pkg/driver"
 )
 
 type Listener struct {
