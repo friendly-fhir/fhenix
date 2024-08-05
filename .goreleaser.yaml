@@ -107,7 +107,7 @@ brews:
       (bash_completion/"fhenix").write output
       output = Utils.popen_read("#{bin}/fhenix completion zsh")
       (zsh_completion/"_fhenix").write output
-      output = Utils.popen_read("#{bin}/fhenixlint completion fish")
+      output = Utils.popen_read("#{bin}/fhenix completion fish")
       (fish_completion/"fhenix.fish").write output
       prefix.install_metafiles
     test: |
