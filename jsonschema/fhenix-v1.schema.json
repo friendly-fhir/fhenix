@@ -99,6 +99,11 @@
               "description": "A filepath to a template expanded on each matched value set.",
               "format": "file-path"
             },
+            "structure-definition": {
+              "type": "string",
+              "description": "A filepath to a template expanded on each matched structure definition.",
+              "format": "file-path"
+            },
             "main": {
               "type": "string",
               "description": "Path to the main template file.",
